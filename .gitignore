@@ -1,0 +1,27 @@
+# Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.cache/
+
+# Symfony
+backend/vendor/
+backend/var/
+backend/.env.local
+backend/.env.*.local
+
+# Environnement
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# Systeme
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
