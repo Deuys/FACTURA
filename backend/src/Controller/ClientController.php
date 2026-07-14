@@ -14,13 +14,35 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class ClientController extends AbstractController
 {
     #[Route('/api/clients', name: 'api_clients_list', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): JsonResponse
-    {
+    public function index(
+        EntityManagerInterface $entityManager,
+        #[CurrentUser] User $user
+    ): JsonResponse {
         $clients = $entityManager
             ->getRepository(Client::class)
-            ->findAll();
+            ->findBy(['user' => $user]);
 
-        return $this->json($clients);
+        $data = array_map(
+            static fn(Client $client): array => [
+                'id' => $client->getId(),
+                'nom' => $client->getNom(),
+                'prenom' => $client->getPrenom(),
+                'entreprise' => $client->getEntreprise(),
+                'email' => $client->getEmail(),
+                'telephone' => $client->getTelephone(),
+                'adresse' => $client->getAdresse(),
+                'codePostal' => $client->getCodePostal(),
+                'ville' => $client->getVille(),
+                'pays' => $client->getPays(),
+                'siret' => $client->getSiret(),
+                'tvaIntracom' => $client->getTvaIntracom(),
+                'createdAt' => $client->getCreatedAt()?->format(DATE_ATOM),
+                'updatedAt' => $client->getUpdatedAt()?->format(DATE_ATOM),
+            ],
+            $clients
+        );
+
+        return $this->json($data);
     }
     #[Route('/api/clients', name: 'api_clients_create', methods: ['POST'])]
     public function create(
@@ -56,8 +78,17 @@ final class ClientController extends AbstractController
     }
 
     #[Route('/api/clients/{id}', name: 'api_clients_show', methods: ['GET'])]
-    public function show(Client $client): JsonResponse
-    {
+    public function show(
+        Client $client,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($client->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé.'],
+                JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+
         return $this->json([
             'id' => $client->getId(),
             'nom' => $client->getNom(),

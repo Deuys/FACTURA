@@ -18,7 +18,8 @@ class Devis
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 30)]
+
+    #[ORM\Column(length: 30, unique: true)]
     private ?string $numero = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
@@ -31,13 +32,14 @@ class Devis
     private StatutDevis $statut = StatutDevis::BROUILLON;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $totalHT = null;
+    private ?string $totalHT = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $totalTVA = null;
+    private ?string $totalTVA = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $totalTTC = null;
+    private ?string $totalTTC = '0.00';
+
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $commentaire = null;
@@ -59,7 +61,12 @@ class Devis
     /**
      * @var Collection<int, LigneDevis>
      */
-    #[ORM\OneToMany(targetEntity: LigneDevis::class, mappedBy: 'devis')]
+    #[ORM\OneToMany(
+        targetEntity: LigneDevis::class,
+        mappedBy: 'devis',
+        cascade: ['persist', 'remove'],
+        orphanRemoval: true
+    )]
     private Collection $ligneDevis;
 
     public function __construct()

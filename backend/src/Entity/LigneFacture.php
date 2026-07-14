@@ -16,19 +16,19 @@ class LigneFacture
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $quantite = null;
+    private ?string $quantite = '1.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $prixUnitaireHT = null;
+    private ?string $prixUnitaireHT = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
-    private ?string $tva = null;
+    private ?string $tva = '20.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
-    private ?string $remise = null;
+    private ?string $remise = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $totalHT = null;
+    private ?string $totalHT = '0.00';
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -41,7 +41,7 @@ class LigneFacture
     private ?Facture $facture = null;
 
     #[ORM\ManyToOne(inversedBy: 'ligneFactures')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?Produit $produit = null;
 
     #[ORM\Column(length: 150)]
@@ -54,10 +54,10 @@ class LigneFacture
     private ?string $unite = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $totalTVA = null;
+    private ?string $totalTVA = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
-    private ?string $totalTTC = null;
+    private ?string $totalTTC = '0.00';
 
     public function getId(): ?int
     {
