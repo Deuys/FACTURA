@@ -6,6 +6,7 @@ use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\User;
 use App\Enum\StatutDevis;
+use App\Service\NumerotationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -49,15 +50,32 @@ final class DevisController extends AbstractController
 
         return $this->json($data);
     }
-    #[Route('/api/devis', name: 'api_devis_create', methods: ['POST'])] public function create(Request $request, EntityManagerInterface $entityManager, #[CurrentUser] User $user): JsonResponse
-    {
+    #[Route('/api/devis', name: 'api_devis_create', methods: ['POST'])]
+    public function create(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        NumerotationService $numerotationService,
+        #[CurrentUser] User $user
+    ): JsonResponse {
         $data = $request->toArray();
-        $client = $entityManager->getRepository(Client::class)->find($data['clientId'] ?? 0);
+
+        $client = $entityManager
+            ->getRepository(Client::class)
+            ->find($data['clientId'] ?? 0);
+
         if (!$client || $client->getUser() !== $user) {
-            return $this->json(['message' => 'Client introuvable ou accès refusé.'], JsonResponse::HTTP_NOT_FOUND);
+            return $this->json(
+                ['message' => 'Client introuvable ou accès refusé.'],
+                JsonResponse::HTTP_NOT_FOUND
+            );
         }
+
         $devis = new Devis();
-        $devis->setNumero('DEV-' . date('Y') . '-' . str_pad((string) random_int(1, 999999), 6, '0', STR_PAD_LEFT));
+
+        $devis->setNumero(
+            $numerotationService->genererNumeroDevis($user)
+        );
+
         $devis->setDateEmission(new \DateTimeImmutable());
         $devis->setDateValidite(new \DateTimeImmutable('+30 days'));
         $devis->setStatut(StatutDevis::BROUILLON);
@@ -67,9 +85,18 @@ final class DevisController extends AbstractController
         $devis->setCommentaire($data['commentaire'] ?? null);
         $devis->setClient($client);
         $devis->setUser($user);
+
         $entityManager->persist($devis);
         $entityManager->flush();
-        return $this->json(['message' => 'Devis créé avec succès.', 'id' => $devis->getId(), 'numero' => $devis->getNumero(),], JsonResponse::HTTP_CREATED);
+
+        return $this->json(
+            [
+                'message' => 'Devis créé avec succès.',
+                'id' => $devis->getId(),
+                'numero' => $devis->getNumero(),
+            ],
+            JsonResponse::HTTP_CREATED
+        );
     }
 
     #[Route('/api/devis/{id}', name: 'api_devis_show', methods: ['GET'])]

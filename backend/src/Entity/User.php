@@ -57,6 +57,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Devis::class, mappedBy: 'user')]
     private Collection $devis;
 
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    private ?Entreprise $entreprise = null;
+
     public function __construct()
     {
         $this->clients = new ArrayCollection();
@@ -82,23 +85,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
     public function getUserIdentifier(): string
     {
         return (string) $this->email;
     }
 
-    /**
-     * @see UserInterface
-     */
     public function getRoles(): array
     {
         $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
         $roles[] = 'ROLE_USER';
 
         return array_unique($roles);
@@ -114,9 +108,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
     public function getPassword(): ?string
     {
         return $this->password;
@@ -129,22 +120,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them, as supported since Symfony 7.3.
-     */
     public function __serialize(): array
     {
         $data = (array) $this;
-        $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
+        $data["\0" . self::class . "\0password"] = hash('crc32c', $this->password);
 
         return $data;
     }
 
     #[\Deprecated]
-    public function eraseCredentials(): void
-    {
-        // @deprecated, to be removed when upgrading to Symfony 8
-    }
+    public function eraseCredentials(): void {}
 
     /**
      * @return Collection<int, Client>
@@ -167,7 +152,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeClient(Client $client): static
     {
         if ($this->clients->removeElement($client)) {
-            // set the owning side to null (unless already changed)
             if ($client->getUser() === $this) {
                 $client->setUser(null);
             }
@@ -197,7 +181,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeProduit(Produit $produit): static
     {
         if ($this->produits->removeElement($produit)) {
-            // set the owning side to null (unless already changed)
             if ($produit->getUser() === $this) {
                 $produit->setUser(null);
             }
@@ -227,7 +210,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeFacture(Facture $facture): static
     {
         if ($this->factures->removeElement($facture)) {
-            // set the owning side to null (unless already changed)
             if ($facture->getUser() === $this) {
                 $facture->setUser(null);
             }
@@ -257,10 +239,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeDevi(Devis $devi): static
     {
         if ($this->devis->removeElement($devi)) {
-            // set the owning side to null (unless already changed)
             if ($devi->getUser() === $this) {
                 $devi->setUser(null);
             }
+        }
+
+        return $this;
+    }
+
+    public function getEntreprise(): ?Entreprise
+    {
+        return $this->entreprise;
+    }
+
+    public function setEntreprise(?Entreprise $entreprise): static
+    {
+        $this->entreprise = $entreprise;
+
+        if ($entreprise !== null && $entreprise->getUser() !== $this) {
+            $entreprise->setUser($this);
         }
 
         return $this;

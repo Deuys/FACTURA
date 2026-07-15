@@ -15,12 +15,8 @@ class Entreprise
     #[ORM\Column]
     private ?int $id = null;
 
-    /**
-     * Relation unidirectionnelle :
-     * une entreprise appartient à un seul utilisateur,
-     * et un utilisateur ne peut avoir qu'une seule entreprise.
-     */
-    #[ORM\OneToOne]
+
+    #[ORM\OneToOne(inversedBy: 'entreprise')]
     #[ORM\JoinColumn(nullable: false, unique: true, onDelete: 'CASCADE')]
     private ?User $user = null;
 

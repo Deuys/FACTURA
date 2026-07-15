@@ -6,6 +6,7 @@ use App\Entity\Client;
 use App\Entity\Facture;
 use App\Entity\User;
 use App\Enum\StatutFacture;
+use App\Service\NumerotationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -60,6 +61,7 @@ final class FactureController extends AbstractController
     public function create(
         Request $request,
         EntityManagerInterface $entityManager,
+        NumerotationService $numerotationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -131,7 +133,9 @@ final class FactureController extends AbstractController
 
         $facture = new Facture();
 
-        $facture->setNumero($this->genererNumeroFacture($entityManager));
+        $facture->setNumero(
+            $numerotationService->genererNumeroFacture($user)
+        );
 
         $facture->setDateEmission($dateEmission);
         $facture->setDateEmissionPrevue($dateEmissionPrevue);
@@ -404,23 +408,5 @@ final class FactureController extends AbstractController
                 ->getUpdatedAt()
                 ?->format(DATE_ATOM),
         ];
-    }
-
-    private function genererNumeroFacture(
-        EntityManagerInterface $entityManager
-    ): string {
-        do {
-            $numero = sprintf(
-                'FAC-%s-%06d',
-                date('Y'),
-                random_int(1, 999999)
-            );
-
-            $factureExistante = $entityManager
-                ->getRepository(Facture::class)
-                ->findOneBy(['numero' => $numero]);
-        } while ($factureExistante !== null);
-
-        return $numero;
     }
 }
