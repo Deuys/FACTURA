@@ -17,14 +17,35 @@ final class FactureController extends AbstractController
 {
     #[Route('/api/factures', name: 'api_factures_list', methods: ['GET'])]
     public function index(
+        Request $request,
         EntityManagerInterface $entityManager,
         #[CurrentUser] User $user
     ): JsonResponse {
+        $statut = null;
+
+        if ($request->query->has('statut')) {
+            $statut = StatutFacture::tryFrom(
+                (string) $request->query->get('statut')
+            );
+
+            if ($statut === null) {
+                return $this->json(
+                    ['message' => 'Le statut demandé est invalide.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
+
+        $ordre = strtoupper(
+            (string) $request->query->get('sort', 'DESC')
+        );
+
         $factures = $entityManager
             ->getRepository(Facture::class)
-            ->findBy(
-                ['user' => $user],
-                ['createdAt' => 'DESC']
+            ->findForUserWithFilters(
+                $user,
+                $statut,
+                $ordre
             );
 
         $data = array_map(
@@ -69,6 +90,20 @@ final class FactureController extends AbstractController
             }
         }
 
+        $dateEmissionPrevue = null;
+
+        if (!empty($data['dateEmissionPrevue'])) {
+            try {
+                $dateEmissionPrevue = new \DateTimeImmutable(
+                    (string) $data['dateEmissionPrevue']
+                );
+            } catch (\Exception) {
+                return $this->json(
+                    ['message' => 'La date d’émission prévue est invalide.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
         $dateEcheance = $dateEmission->modify('+30 days');
 
         if (!empty($data['dateEcheance'])) {
@@ -97,9 +132,49 @@ final class FactureController extends AbstractController
         $facture = new Facture();
 
         $facture->setNumero($this->genererNumeroFacture($entityManager));
+
         $facture->setDateEmission($dateEmission);
+        $facture->setDateEmissionPrevue($dateEmissionPrevue);
         $facture->setDateEcheance($dateEcheance);
-        $facture->setStatut(StatutFacture::BROUILLON);
+        $statut = StatutFacture::BROUILLON;
+
+        if (!empty($data['statut'])) {
+            $statut = StatutFacture::tryFrom((string) $data['statut']);
+
+            if ($statut === null) {
+                return $this->json(
+                    ['message' => 'Statut invalide.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
+
+        $facture->setStatut($statut);
+        if (
+            $statut === StatutFacture::PLANIFIEE &&
+            $dateEmissionPrevue === null
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Une facture planifiée doit posséder une date d’émission prévue.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (
+            $statut !== StatutFacture::PLANIFIEE &&
+            $dateEmissionPrevue !== null
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'La date d’émission prévue est réservée aux factures planifiées.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
         $facture->setTotalHT('0.00');
         $facture->setTotalTVA('0.00');
         $facture->setTotalTTC('0.00');
@@ -181,7 +256,23 @@ final class FactureController extends AbstractController
                 );
             }
         }
-
+        if (array_key_exists('dateEmissionPrevue', $data)) {
+            try {
+                $facture->setDateEmissionPrevue(
+                    $data['dateEmissionPrevue'] !== null
+                        && trim((string) $data['dateEmissionPrevue']) !== ''
+                        ? new \DateTimeImmutable(
+                            (string) $data['dateEmissionPrevue']
+                        )
+                        : null
+                );
+            } catch (\Exception) {
+                return $this->json(
+                    ['message' => 'La date d’émission prévue est invalide.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
         if (array_key_exists('dateEcheance', $data)) {
             try {
                 $facture->setDateEcheance(
@@ -216,6 +307,32 @@ final class FactureController extends AbstractController
             }
 
             $facture->setStatut($statut);
+        }
+
+        if (
+            $facture->getStatut() === StatutFacture::PLANIFIEE
+            && $facture->getDateEmissionPrevue() === null
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Une facture planifiée doit posséder une date d’émission prévue.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (
+            $facture->getStatut() !== StatutFacture::PLANIFIEE
+            && $facture->getDateEmissionPrevue() !== null
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'La date d’émission prévue est réservée aux factures planifiées.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
         }
 
         if (array_key_exists('commentaire', $data)) {
@@ -262,6 +379,9 @@ final class FactureController extends AbstractController
             'numero' => $facture->getNumero(),
             'dateEmission' => $facture
                 ->getDateEmission()
+                ?->format('Y-m-d'),
+            'dateEmissionPrevue' => $facture
+                ->getDateEmissionPrevue()
                 ?->format('Y-m-d'),
             'dateEcheance' => $facture
                 ->getDateEcheance()

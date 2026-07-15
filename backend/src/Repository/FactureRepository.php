@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Facture;
+use App\Entity\User;
+use App\Enum\StatutFacture;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -16,28 +18,29 @@ class FactureRepository extends ServiceEntityRepository
         parent::__construct($registry, Facture::class);
     }
 
-    //    /**
-    //     * @return Facture[] Returns an array of Facture objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('f')
-    //            ->andWhere('f.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('f.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Facture[]
+     */
+    public function findForUserWithFilters(
+        User $user,
+        ?StatutFacture $statut = null,
+        string $ordre = 'DESC'
+    ): array {
+        $ordre = strtoupper($ordre) === 'ASC' ? 'ASC' : 'DESC';
 
-    //    public function findOneBySomeField($value): ?Facture
-    //    {
-    //        return $this->createQueryBuilder('f')
-    //            ->andWhere('f.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        $queryBuilder = $this->createQueryBuilder('f')
+            ->andWhere('f.user = :user')
+            ->setParameter('user', $user)
+            ->orderBy('f.dateEmission', $ordre);
+
+        if ($statut !== null) {
+            $queryBuilder
+                ->andWhere('f.statut = :statut')
+                ->setParameter('statut', $statut);
+        }
+
+        return $queryBuilder
+            ->getQuery()
+            ->getResult();
+    }
 }
