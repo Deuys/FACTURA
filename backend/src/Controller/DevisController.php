@@ -2,6 +2,10 @@
 
 namespace App\Controller;
 
+use App\Entity\Facture;
+use App\Entity\LigneFacture;
+use App\Enum\StatutFacture;
+use App\Service\CalculTotauxService;
 use App\Entity\Client;
 use App\Entity\Devis;
 use App\Entity\User;
@@ -219,6 +223,144 @@ final class DevisController extends AbstractController
                 'updatedAt' => $devis->getUpdatedAt()?->format(DATE_ATOM),
             ],
         ]);
+    }
+
+    #[Route(
+        '/api/devis/{id}/transformer',
+        name: 'api_devis_transformer',
+        methods: ['POST']
+    )]
+    public function transformerEnFacture(
+        Devis $devis,
+        EntityManagerInterface $entityManager,
+        NumerotationService $numerotationService,
+        CalculTotauxService $calculTotauxService,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($devis->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé à ce devis.'],
+                JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+
+        if ($devis->getStatut() === StatutDevis::TRANSFORME) {
+            return $this->json(
+                ['message' => 'Ce devis a déjà été transformé en facture.'],
+                JsonResponse::HTTP_CONFLICT
+            );
+        }
+
+        if ($devis->getStatut() !== StatutDevis::ACCEPTE) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Seul un devis accepté peut être transformé en facture.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if ($devis->getLigneDevis()->isEmpty()) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Impossible de transformer un devis sans ligne.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $aujourdhui = new \DateTimeImmutable('today');
+
+        $delaiPaiement = $user
+            ->getEntreprise()
+            ?->getDelaiPaiement() ?? 30;
+
+        $dateEcheance = $aujourdhui->modify(
+            sprintf('+%d days', $delaiPaiement)
+        );
+
+        $facture = new Facture();
+
+        $facture->setNumero(
+            $numerotationService->genererNumeroFacture($user)
+        );
+
+        $facture->setDateEmission($aujourdhui);
+        $facture->setDateEmissionPrevue(null);
+        $facture->setDateEcheance($dateEcheance);
+        $facture->setStatut(StatutFacture::BROUILLON);
+        $facture->setClient($devis->getClient());
+        $facture->setUser($user);
+        $facture->setCommentaire(
+            sprintf(
+                'Facture créée depuis le devis %s.',
+                $devis->getNumero()
+            )
+        );
+
+        foreach ($devis->getLigneDevis() as $ligneDevis) {
+            $ligneFacture = new LigneFacture();
+
+            $ligneFacture->setProduit($ligneDevis->getProduit());
+            $ligneFacture->setDesignation(
+                (string) $ligneDevis->getDesignation()
+            );
+            $ligneFacture->setDescription(
+                $ligneDevis->getDescription()
+            );
+            $ligneFacture->setUnite(
+                $ligneDevis->getUnite()
+            );
+            $ligneFacture->setQuantite(
+                (string) $ligneDevis->getQuantite()
+            );
+            $ligneFacture->setPrixUnitaireHT(
+                (string) $ligneDevis->getPrixUnitaireHT()
+            );
+            $ligneFacture->setTva(
+                (string) $ligneDevis->getTva()
+            );
+            $ligneFacture->setRemise(
+                $ligneDevis->getRemise()
+            );
+
+            $facture->addLigneFacture($ligneFacture);
+        }
+
+        $calculTotauxService->recalculerFacture($facture);
+
+        $devis->setStatut(StatutDevis::TRANSFORME);
+
+        $entityManager->persist($facture);
+        $entityManager->flush();
+
+        return $this->json(
+            [
+                'message' => 'Facture créée avec succès.',
+                'devis' => [
+                    'id' => $devis->getId(),
+                    'numero' => $devis->getNumero(),
+                    'statut' => $devis->getStatut()->value,
+                ],
+                'facture' => [
+                    'id' => $facture->getId(),
+                    'numero' => $facture->getNumero(),
+                    'statut' => $facture->getStatut()->value,
+                    'dateEmission' => $facture
+                        ->getDateEmission()
+                        ?->format('Y-m-d'),
+                    'dateEcheance' => $facture
+                        ->getDateEcheance()
+                        ?->format('Y-m-d'),
+                    'totalHT' => $facture->getTotalHT(),
+                    'totalTVA' => $facture->getTotalTVA(),
+                    'totalTTC' => $facture->getTotalTTC(),
+                ],
+            ],
+            JsonResponse::HTTP_CREATED
+        );
     }
 
     #[Route('/api/devis/{id}', name: 'api_devis_delete', methods: ['DELETE'])]

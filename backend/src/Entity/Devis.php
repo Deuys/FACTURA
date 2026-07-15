@@ -246,22 +246,21 @@ class Devis
         return $this->ligneDevis;
     }
 
-    public function addLigneDevi(LigneDevis $ligneDevi): static
+    public function addLigneDevis(LigneDevis $ligneDevis): static
     {
-        if (!$this->ligneDevis->contains($ligneDevi)) {
-            $this->ligneDevis->add($ligneDevi);
-            $ligneDevi->setDevis($this);
+        if (!$this->ligneDevis->contains($ligneDevis)) {
+            $this->ligneDevis->add($ligneDevis);
+            $ligneDevis->setDevis($this);
         }
 
         return $this;
     }
 
-    public function removeLigneDevi(LigneDevis $ligneDevi): static
+    public function removeLigneDevis(LigneDevis $ligneDevis): static
     {
-        if ($this->ligneDevis->removeElement($ligneDevi)) {
-            // set the owning side to null (unless already changed)
-            if ($ligneDevi->getDevis() === $this) {
-                $ligneDevi->setDevis(null);
+        if ($this->ligneDevis->removeElement($ligneDevis)) {
+            if ($ligneDevis->getDevis() === $this) {
+                $ligneDevis->setDevis(null);
             }
         }
 

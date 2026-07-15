@@ -6,6 +6,7 @@ use App\Entity\Facture;
 use App\Entity\LigneFacture;
 use App\Entity\Produit;
 use App\Entity\User;
+use App\Service\CalculTotauxService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +25,7 @@ final class LigneFactureController extends AbstractController
         Facture $facture,
         Request $request,
         EntityManagerInterface $entityManager,
+        CalculTotauxService $calculTotauxService,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -63,19 +65,7 @@ final class LigneFactureController extends AbstractController
             );
         }
 
-        $prixUnitaireHT = (float) $produit->getPrixHT();
-        $tva = (float) $produit->getTva();
-
-        $totalBrutHT = $quantite * $prixUnitaireHT;
-        $montantRemise = $totalBrutHT * ($remise / 100);
-        $totalHT = $totalBrutHT - $montantRemise;
-        $totalTVA = $totalHT * ($tva / 100);
-        $totalTTC = $totalHT + $totalTVA;
-
         $ligneFacture = new LigneFacture();
-
-        $ligneFacture->setFacture($facture);
-        $facture->addLigneFacture($ligneFacture);
 
         $ligneFacture->setProduit($produit);
         $ligneFacture->setDesignation($produit->getNom());
@@ -87,32 +77,24 @@ final class LigneFactureController extends AbstractController
         );
 
         $ligneFacture->setPrixUnitaireHT(
-            number_format($prixUnitaireHT, 2, '.', '')
+            number_format((float) $produit->getPrixHT(), 2, '.', '')
         );
 
         $ligneFacture->setTva(
-            number_format($tva, 2, '.', '')
+            number_format((float) $produit->getTva(), 2, '.', '')
         );
 
         $ligneFacture->setRemise(
             number_format($remise, 2, '.', '')
         );
 
-        $ligneFacture->setTotalHT(
-            number_format($totalHT, 2, '.', '')
-        );
 
-        $ligneFacture->setTotalTVA(
-            number_format($totalTVA, 2, '.', '')
-        );
-
-        $ligneFacture->setTotalTTC(
-            number_format($totalTTC, 2, '.', '')
-        );
+        $facture->addLigneFacture($ligneFacture);
 
         $entityManager->persist($ligneFacture);
 
-        $this->recalculerTotauxFacture($facture);
+
+        $calculTotauxService->recalculerFacture($facture);
 
         $entityManager->flush();
 
@@ -160,6 +142,7 @@ final class LigneFactureController extends AbstractController
         LigneFacture $ligneFacture,
         Request $request,
         EntityManagerInterface $entityManager,
+        CalculTotauxService $calculTotauxService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $facture = $ligneFacture->getFacture();
@@ -173,9 +156,6 @@ final class LigneFactureController extends AbstractController
 
         $data = $request->toArray();
 
-        $quantite = (float) $ligneFacture->getQuantite();
-        $remise = (float) ($ligneFacture->getRemise() ?? '0.00');
-
         if (array_key_exists('quantite', $data)) {
             $quantite = (float) $data['quantite'];
 
@@ -185,6 +165,10 @@ final class LigneFactureController extends AbstractController
                     JsonResponse::HTTP_BAD_REQUEST
                 );
             }
+
+            $ligneFacture->setQuantite(
+                number_format($quantite, 2, '.', '')
+            );
         }
 
         if (array_key_exists('remise', $data)) {
@@ -196,6 +180,40 @@ final class LigneFactureController extends AbstractController
                     JsonResponse::HTTP_BAD_REQUEST
                 );
             }
+
+            $ligneFacture->setRemise(
+                number_format($remise, 2, '.', '')
+            );
+        }
+
+        if (array_key_exists('prixUnitaireHT', $data)) {
+            $prixUnitaireHT = (float) $data['prixUnitaireHT'];
+
+            if ($prixUnitaireHT < 0) {
+                return $this->json(
+                    ['message' => 'Le prix unitaire HT ne peut pas être négatif.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            $ligneFacture->setPrixUnitaireHT(
+                number_format($prixUnitaireHT, 2, '.', '')
+            );
+        }
+
+        if (array_key_exists('tva', $data)) {
+            $tva = (float) $data['tva'];
+
+            if ($tva < 0 || $tva > 100) {
+                return $this->json(
+                    ['message' => 'Le taux de TVA doit être compris entre 0 et 100.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            $ligneFacture->setTva(
+                number_format($tva, 2, '.', '')
+            );
         }
 
         if (array_key_exists('designation', $data)) {
@@ -227,36 +245,7 @@ final class LigneFactureController extends AbstractController
             );
         }
 
-        $prixUnitaireHT = (float) $ligneFacture->getPrixUnitaireHT();
-        $tva = (float) $ligneFacture->getTva();
-
-        $totalBrutHT = $quantite * $prixUnitaireHT;
-        $montantRemise = $totalBrutHT * ($remise / 100);
-        $totalHT = $totalBrutHT - $montantRemise;
-        $totalTVA = $totalHT * ($tva / 100);
-        $totalTTC = $totalHT + $totalTVA;
-
-        $ligneFacture->setQuantite(
-            number_format($quantite, 2, '.', '')
-        );
-
-        $ligneFacture->setRemise(
-            number_format($remise, 2, '.', '')
-        );
-
-        $ligneFacture->setTotalHT(
-            number_format($totalHT, 2, '.', '')
-        );
-
-        $ligneFacture->setTotalTVA(
-            number_format($totalTVA, 2, '.', '')
-        );
-
-        $ligneFacture->setTotalTTC(
-            number_format($totalTTC, 2, '.', '')
-        );
-
-        $this->recalculerTotauxFacture($facture);
+        $calculTotauxService->recalculerFacture($facture);
 
         $entityManager->flush();
 
@@ -275,6 +264,7 @@ final class LigneFactureController extends AbstractController
     public function delete(
         LigneFacture $ligneFacture,
         EntityManagerInterface $entityManager,
+        CalculTotauxService $calculTotauxService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $facture = $ligneFacture->getFacture();
@@ -286,15 +276,11 @@ final class LigneFactureController extends AbstractController
             );
         }
 
-        /*
-         * On retire la ligne de la collection en mémoire afin que le
-         * recalcul ne la compte plus avant même l'exécution du flush.
-         */
         $facture->getLigneFactures()->removeElement($ligneFacture);
 
         $entityManager->remove($ligneFacture);
 
-        $this->recalculerTotauxFacture($facture);
+        $calculTotauxService->recalculerFacture($facture);
 
         $entityManager->flush();
 
@@ -302,31 +288,6 @@ final class LigneFactureController extends AbstractController
             'message' => 'Ligne de facture supprimée avec succès.',
             'totauxFacture' => $this->transformerTotaux($facture),
         ]);
-    }
-
-    private function recalculerTotauxFacture(Facture $facture): void
-    {
-        $totalFactureHT = 0.0;
-        $totalFactureTVA = 0.0;
-        $totalFactureTTC = 0.0;
-
-        foreach ($facture->getLigneFactures() as $ligneFacture) {
-            $totalFactureHT += (float) $ligneFacture->getTotalHT();
-            $totalFactureTVA += (float) $ligneFacture->getTotalTVA();
-            $totalFactureTTC += (float) $ligneFacture->getTotalTTC();
-        }
-
-        $facture->setTotalHT(
-            number_format($totalFactureHT, 2, '.', '')
-        );
-
-        $facture->setTotalTVA(
-            number_format($totalFactureTVA, 2, '.', '')
-        );
-
-        $facture->setTotalTTC(
-            number_format($totalFactureTTC, 2, '.', '')
-        );
     }
 
     private function transformerLigne(LigneFacture $ligneFacture): array

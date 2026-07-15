@@ -8,6 +8,8 @@ use App\Entity\User;
 use App\Enum\StatutFacture;
 use App\Service\NumerotationService;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\FacturePdfService;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -215,6 +217,34 @@ final class FactureController extends AbstractController
         }
 
         return $this->json($this->transformerFacture($facture));
+    }
+
+    #[Route('/api/factures/{id}/pdf', name: 'api_factures_pdf', methods: ['GET'])]
+    public function pdf(
+        Facture $facture,
+        FacturePdfService $facturePdfService,
+        #[CurrentUser] User $user
+    ): Response {
+        if ($facture->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé à cette facture.'],
+                Response::HTTP_FORBIDDEN
+            );
+        }
+
+        $pdf = $facturePdfService->generate($facture);
+
+        return new Response(
+            $pdf,
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf(
+                    'attachment; filename="%s"',
+                    $facturePdfService->generateFilename($facture)
+                ),
+            ]
+        );
     }
 
     #[Route('/api/factures/{id}', name: 'api_factures_update', methods: ['PUT'])]

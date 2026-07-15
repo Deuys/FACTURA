@@ -6,6 +6,7 @@ use App\Entity\Devis;
 use App\Entity\LigneDevis;
 use App\Entity\Produit;
 use App\Entity\User;
+use App\Service\CalculTotauxService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,15 +16,18 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class LigneDevisController extends AbstractController
 {
-    #[Route('/api/devis/{id}/lignes', name: 'api_ligne_devis_create', methods: ['POST'])]
+    #[Route(
+        '/api/devis/{id}/lignes',
+        name: 'api_ligne_devis_create',
+        methods: ['POST']
+    )]
     public function create(
         Devis $devis,
         Request $request,
         EntityManagerInterface $entityManager,
+        CalculTotauxService $calculTotauxService,
         #[CurrentUser] User $user
     ): JsonResponse {
-        $data = $request->toArray();
-
         if ($devis->getUser() !== $user) {
             return $this->json(
                 ['message' => 'Accès refusé au devis.'],
@@ -31,11 +35,13 @@ final class LigneDevisController extends AbstractController
             );
         }
 
+        $data = $request->toArray();
+
         $produit = $entityManager
             ->getRepository(Produit::class)
             ->find($data['produitId'] ?? 0);
 
-        if (!$produit || $produit->getUser() !== $user) {
+        if ($produit === null || $produit->getUser() !== $user) {
             return $this->json(
                 ['message' => 'Produit introuvable ou accès refusé.'],
                 JsonResponse::HTTP_NOT_FOUND
@@ -43,6 +49,7 @@ final class LigneDevisController extends AbstractController
         }
 
         $quantite = (float) ($data['quantite'] ?? 0);
+        $remise = (float) ($data['remise'] ?? 0);
 
         if ($quantite <= 0) {
             return $this->json(
@@ -51,69 +58,59 @@ final class LigneDevisController extends AbstractController
             );
         }
 
-        $prixUnitaireHT = (float) $produit->getPrixHT();
-        $tva = (float) $produit->getTva();
-
-        $totalHT = $quantite * $prixUnitaireHT;
-        $totalTVA = $totalHT * ($tva / 100);
-        $totalTTC = $totalHT + $totalTVA;
+        if ($remise < 0 || $remise > 100) {
+            return $this->json(
+                ['message' => 'La remise doit être comprise entre 0 et 100.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
 
         $ligneDevis = new LigneDevis();
 
-        $ligneDevis->setDevis($devis);
-        $devis->addLigneDevi($ligneDevis);
-
         $ligneDevis->setProduit($produit);
-        $ligneDevis->setQuantite(number_format($quantite, 2, '.', ''));
-        $ligneDevis->setPrixUnitaireHT(number_format($prixUnitaireHT, 2, '.', ''));
-        $ligneDevis->setTva(number_format($tva, 2, '.', ''));
-        $ligneDevis->setRemise('0.00');
         $ligneDevis->setDesignation($produit->getNom());
         $ligneDevis->setDescription($produit->getDescription());
         $ligneDevis->setUnite($produit->getUnite());
-        $ligneDevis->setTotalHT(number_format($totalHT, 2, '.', ''));
-        $ligneDevis->setTotalTVA(number_format($totalTVA, 2, '.', ''));
-        $ligneDevis->setTotalTTC(number_format($totalTTC, 2, '.', ''));
+
+        $ligneDevis->setQuantite(
+            number_format($quantite, 2, '.', '')
+        );
+
+        $ligneDevis->setPrixUnitaireHT(
+            number_format((float) $produit->getPrixHT(), 2, '.', '')
+        );
+
+        $ligneDevis->setTva(
+            number_format((float) $produit->getTva(), 2, '.', '')
+        );
+
+        $ligneDevis->setRemise(
+            number_format($remise, 2, '.', '')
+        );
+
+        $devis->addLigneDevis($ligneDevis);
 
         $entityManager->persist($ligneDevis);
 
-        $totalDevisHT = 0.0;
-        $totalDevisTVA = 0.0;
-        $totalDevisTTC = 0.0;
-
-        foreach ($devis->getLigneDevis() as $ligne) {
-            $totalDevisHT += (float) $ligne->getTotalHT();
-            $totalDevisTVA += (float) $ligne->getTotalTVA();
-            $totalDevisTTC += (float) $ligne->getTotalTTC();
-        }
-
-        $devis->setTotalHT(number_format($totalDevisHT, 2, '.', ''));
-        $devis->setTotalTVA(number_format($totalDevisTVA, 2, '.', ''));
-        $devis->setTotalTTC(number_format($totalDevisTTC, 2, '.', ''));
+        $calculTotauxService->recalculerDevis($devis);
 
         $entityManager->flush();
 
         return $this->json(
             [
                 'message' => 'Ligne de devis créée avec succès.',
-                'ligne' => [
-                    'id' => $ligneDevis->getId(),
-                    'produitId' => $produit->getId(),
-                    'designation' => $ligneDevis->getDesignation(),
-                    'quantite' => $ligneDevis->getQuantite(),
-                    'prixUnitaireHT' => $ligneDevis->getPrixUnitaireHT(),
-                    'tva' => $ligneDevis->getTva(),
-                    'remise' => $ligneDevis->getRemise(),
-                    'totalHT' => $ligneDevis->getTotalHT(),
-                    'totalTVA' => $ligneDevis->getTotalTVA(),
-                    'totalTTC' => $ligneDevis->getTotalTTC(),
-                ],
+                'ligne' => $this->transformerLigne($ligneDevis),
+                'totauxDevis' => $this->transformerTotaux($devis),
             ],
             JsonResponse::HTTP_CREATED
         );
     }
 
-    #[Route('/api/devis/{id}/lignes', name: 'api_ligne_devis_list', methods: ['GET'])]
+    #[Route(
+        '/api/devis/{id}/lignes',
+        name: 'api_ligne_devis_list',
+        methods: ['GET']
+    )]
     public function index(
         Devis $devis,
         #[CurrentUser] User $user
@@ -127,33 +124,23 @@ final class LigneDevisController extends AbstractController
 
         $data = [];
 
-        foreach ($devis->getLigneDevis() as $ligne) {
-            $data[] = [
-                'id' => $ligne->getId(),
-                'produitId' => $ligne->getProduit()?->getId(),
-                'designation' => $ligne->getDesignation(),
-                'description' => $ligne->getDescription(),
-                'quantite' => $ligne->getQuantite(),
-                'prixUnitaireHT' => $ligne->getPrixUnitaireHT(),
-                'tva' => $ligne->getTva(),
-                'remise' => $ligne->getRemise(),
-                'unite' => $ligne->getUnite(),
-                'totalHT' => $ligne->getTotalHT(),
-                'totalTVA' => $ligne->getTotalTVA(),
-                'totalTTC' => $ligne->getTotalTTC(),
-                'createdAt' => $ligne->getCreatedAt()?->format(DATE_ATOM),
-                'updatedAt' => $ligne->getUpdatedAt()?->format(DATE_ATOM),
-            ];
+        foreach ($devis->getLigneDevis() as $ligneDevis) {
+            $data[] = $this->transformerLigne($ligneDevis);
         }
 
         return $this->json($data);
     }
 
-    #[Route('/api/lignes-devis/{id}', name: 'api_ligne_devis_update', methods: ['PUT'])]
+    #[Route(
+        '/api/lignes-devis/{id}',
+        name: 'api_ligne_devis_update',
+        methods: ['PUT']
+    )]
     public function update(
         LigneDevis $ligneDevis,
         Request $request,
         EntityManagerInterface $entityManager,
+        CalculTotauxService $calculTotauxService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $devis = $ligneDevis->getDevis();
@@ -167,9 +154,6 @@ final class LigneDevisController extends AbstractController
 
         $data = $request->toArray();
 
-        $quantite = (float) $ligneDevis->getQuantite();
-        $remise = (float) ($ligneDevis->getRemise() ?? '0.00');
-
         if (array_key_exists('quantite', $data)) {
             $quantite = (float) $data['quantite'];
 
@@ -179,6 +163,10 @@ final class LigneDevisController extends AbstractController
                     JsonResponse::HTTP_BAD_REQUEST
                 );
             }
+
+            $ligneDevis->setQuantite(
+                number_format($quantite, 2, '.', '')
+            );
         }
 
         if (array_key_exists('remise', $data)) {
@@ -190,6 +178,40 @@ final class LigneDevisController extends AbstractController
                     JsonResponse::HTTP_BAD_REQUEST
                 );
             }
+
+            $ligneDevis->setRemise(
+                number_format($remise, 2, '.', '')
+            );
+        }
+
+        if (array_key_exists('prixUnitaireHT', $data)) {
+            $prixUnitaireHT = (float) $data['prixUnitaireHT'];
+
+            if ($prixUnitaireHT < 0) {
+                return $this->json(
+                    ['message' => 'Le prix unitaire HT ne peut pas être négatif.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            $ligneDevis->setPrixUnitaireHT(
+                number_format($prixUnitaireHT, 2, '.', '')
+            );
+        }
+
+        if (array_key_exists('tva', $data)) {
+            $tva = (float) $data['tva'];
+
+            if ($tva < 0 || $tva > 100) {
+                return $this->json(
+                    ['message' => 'Le taux de TVA doit être compris entre 0 et 100.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            $ligneDevis->setTva(
+                number_format($tva, 2, '.', '')
+            );
         }
 
         if (array_key_exists('designation', $data)) {
@@ -221,65 +243,26 @@ final class LigneDevisController extends AbstractController
             );
         }
 
-        $prixUnitaireHT = (float) $ligneDevis->getPrixUnitaireHT();
-        $tva = (float) $ligneDevis->getTva();
-
-        $totalBrutHT = $quantite * $prixUnitaireHT;
-        $montantRemise = $totalBrutHT * ($remise / 100);
-        $totalHT = $totalBrutHT - $montantRemise;
-        $totalTVA = $totalHT * ($tva / 100);
-        $totalTTC = $totalHT + $totalTVA;
-
-        $ligneDevis->setQuantite(number_format($quantite, 2, '.', ''));
-        $ligneDevis->setRemise(number_format($remise, 2, '.', ''));
-        $ligneDevis->setTotalHT(number_format($totalHT, 2, '.', ''));
-        $ligneDevis->setTotalTVA(number_format($totalTVA, 2, '.', ''));
-        $ligneDevis->setTotalTTC(number_format($totalTTC, 2, '.', ''));
-
-        $totalDevisHT = 0.0;
-        $totalDevisTVA = 0.0;
-        $totalDevisTTC = 0.0;
-
-        foreach ($devis->getLigneDevis() as $ligne) {
-            $totalDevisHT += (float) $ligne->getTotalHT();
-            $totalDevisTVA += (float) $ligne->getTotalTVA();
-            $totalDevisTTC += (float) $ligne->getTotalTTC();
-        }
-
-        $devis->setTotalHT(number_format($totalDevisHT, 2, '.', ''));
-        $devis->setTotalTVA(number_format($totalDevisTVA, 2, '.', ''));
-        $devis->setTotalTTC(number_format($totalDevisTTC, 2, '.', ''));
+        $calculTotauxService->recalculerDevis($devis);
 
         $entityManager->flush();
 
         return $this->json([
             'message' => 'Ligne de devis modifiée avec succès.',
-            'ligne' => [
-                'id' => $ligneDevis->getId(),
-                'produitId' => $ligneDevis->getProduit()?->getId(),
-                'designation' => $ligneDevis->getDesignation(),
-                'description' => $ligneDevis->getDescription(),
-                'quantite' => $ligneDevis->getQuantite(),
-                'prixUnitaireHT' => $ligneDevis->getPrixUnitaireHT(),
-                'tva' => $ligneDevis->getTva(),
-                'remise' => $ligneDevis->getRemise(),
-                'unite' => $ligneDevis->getUnite(),
-                'totalHT' => $ligneDevis->getTotalHT(),
-                'totalTVA' => $ligneDevis->getTotalTVA(),
-                'totalTTC' => $ligneDevis->getTotalTTC(),
-                'updatedAt' => $ligneDevis->getUpdatedAt()?->format(DATE_ATOM),
-            ],
-            'totauxDevis' => [
-                'totalHT' => $devis->getTotalHT(),
-                'totalTVA' => $devis->getTotalTVA(),
-                'totalTTC' => $devis->getTotalTTC(),
-            ],
+            'ligne' => $this->transformerLigne($ligneDevis),
+            'totauxDevis' => $this->transformerTotaux($devis),
         ]);
     }
-    #[Route('/api/lignes-devis/{id}', name: 'api_ligne_devis_delete', methods: ['DELETE'])]
+
+    #[Route(
+        '/api/lignes-devis/{id}',
+        name: 'api_ligne_devis_delete',
+        methods: ['DELETE']
+    )]
     public function delete(
         LigneDevis $ligneDevis,
         EntityManagerInterface $entityManager,
+        CalculTotauxService $calculTotauxService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $devis = $ligneDevis->getDevis();
@@ -291,32 +274,54 @@ final class LigneDevisController extends AbstractController
             );
         }
 
+        /*
+         * On retire la ligne de la collection avant le recalcul,
+         * sinon elle serait encore comptée.
+         */
+        $devis->removeLigneDevis($ligneDevis);
+
         $entityManager->remove($ligneDevis);
-        $entityManager->flush();
 
-        $totalDevisHT = 0.0;
-        $totalDevisTVA = 0.0;
-        $totalDevisTTC = 0.0;
-
-        foreach ($devis->getLigneDevis() as $ligne) {
-            $totalDevisHT += (float) $ligne->getTotalHT();
-            $totalDevisTVA += (float) $ligne->getTotalTVA();
-            $totalDevisTTC += (float) $ligne->getTotalTTC();
-        }
-
-        $devis->setTotalHT(number_format($totalDevisHT, 2, '.', ''));
-        $devis->setTotalTVA(number_format($totalDevisTVA, 2, '.', ''));
-        $devis->setTotalTTC(number_format($totalDevisTTC, 2, '.', ''));
+        $calculTotauxService->recalculerDevis($devis);
 
         $entityManager->flush();
 
         return $this->json([
             'message' => 'Ligne de devis supprimée avec succès.',
-            'totauxDevis' => [
-                'totalHT' => $devis->getTotalHT(),
-                'totalTVA' => $devis->getTotalTVA(),
-                'totalTTC' => $devis->getTotalTTC(),
-            ],
+            'totauxDevis' => $this->transformerTotaux($devis),
         ]);
+    }
+
+    private function transformerLigne(LigneDevis $ligneDevis): array
+    {
+        return [
+            'id' => $ligneDevis->getId(),
+            'produitId' => $ligneDevis->getProduit()?->getId(),
+            'designation' => $ligneDevis->getDesignation(),
+            'description' => $ligneDevis->getDescription(),
+            'quantite' => $ligneDevis->getQuantite(),
+            'prixUnitaireHT' => $ligneDevis->getPrixUnitaireHT(),
+            'tva' => $ligneDevis->getTva(),
+            'remise' => $ligneDevis->getRemise(),
+            'unite' => $ligneDevis->getUnite(),
+            'totalHT' => $ligneDevis->getTotalHT(),
+            'totalTVA' => $ligneDevis->getTotalTVA(),
+            'totalTTC' => $ligneDevis->getTotalTTC(),
+            'createdAt' => $ligneDevis
+                ->getCreatedAt()
+                ?->format(DATE_ATOM),
+            'updatedAt' => $ligneDevis
+                ->getUpdatedAt()
+                ?->format(DATE_ATOM),
+        ];
+    }
+
+    private function transformerTotaux(Devis $devis): array
+    {
+        return [
+            'totalHT' => $devis->getTotalHT(),
+            'totalTVA' => $devis->getTotalTVA(),
+            'totalTTC' => $devis->getTotalTTC(),
+        ];
     }
 }

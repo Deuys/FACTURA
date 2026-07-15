@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+
+    <style>
+        @page {
+            margin: 25px 35px;
+        }
+
+        body {
+            font-family: Inter, DejaVu Sans, sans-serif;
+            font-size: 12px;
+            color: #111827;
+            background: #FFFFFF;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            color: #111827;
+            letter-spacing: 0.5px;
+        }
+
+        .header-table,
+        .info-table,
+        .lines-table,
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table {
+            margin-bottom: 25px;
+        }
+
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .brand {
+            font-size: 17px;
+            font-weight: bold;
+            color: #2563EB;
+        }
+
+        .document-title {
+            text-align: right;
+        }
+
+        .document-number {
+            margin-top: 6px;
+            color: #555555;
+        }
+
+        .info-table {
+            margin-bottom: 25px;
+        }
+
+        .info-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 12px;
+            border: 1px solid #E5E7EB;
+            background: #FFFFFF;
+        }
+
+        .section-title {
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .lines-table {
+            table-layout: fixed;
+        }
+
+        .lines-table th,
+        .lines-table td {
+            padding: 8px;
+            border: 1px solid #E5E7EB;
+            vertical-align: top;
+        }
+
+        .lines-table th {
+            background: #EFF6FF;
+            color: #111827;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .lines-table tbody tr:nth-child(even) {
+            background: #F8FAFC;
+        }
+
+        .designation-description {
+            margin-top: 3px;
+            color: #555555;
+            font-size: 10px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .totals-wrapper {
+            margin-top: 20px;
+        }
+
+        .totals-table {
+            width: 42%;
+            margin-left: auto;
+        }
+
+        .totals-table td {
+            padding: 8px;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .total-ttc td {
+            color: #2563EB;
+            font-size: 14px;
+            font-weight: bold;
+            border-top: 2px solid #2563EB;
+        }
+
+        .comment {
+            margin-top: 30px;
+            padding: 12px;
+            background: #F8FAFC;
+            border: 1px solid #E5E7EB;
+            color: #555555;
+        }
+
+        .comment strong {
+            color: #111827;
+        }
+
+        .status-badge {
+            display: inline-block;
+            margin-left: 4px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            vertical-align: middle;
+            line-height: 1;
+        }
+
+        .status-payee {
+            color: #22C55E;
+            background: #DCFCE7;
+        }
+
+        .status-en-attente {
+            color: #F59E0B;
+            background: #FEF3C7;
+        }
+
+        .status-envoyee {
+            color: #3B82F6;
+            background: #DBEAFE;
+        }
+
+        .status-en-retard {
+            color: #EF4444;
+            background: #FEE2E2;
+        }
+
+        .status-brouillon {
+            color: #555555;
+            background: #EFF6FF;
+        }
+
+        .status-planifiee {
+            color: #844FDD;
+            background: #F3E8FF;
+        }
+
+        .footer {
+            position: fixed;
+            right: 0;
+            bottom: -10px;
+            left: 0;
+            color: #555555;
+            font-size: 9px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+{% set statutClass = {
+    'Payée': 'status-payee',
+    'En attente': 'status-en-attente',
+    'Envoyée': 'status-envoyee',
+    'En retard': 'status-en-retard',
+    'Brouillon': 'status-brouillon',
+    'Planifiée': 'status-planifiee'
+} %}
+
+<table class="header-table">
+    <tr>
+        <td>
+            <div class="brand">FACTURA</div>
+        </td>
+
+        <td class="document-title">
+            <h1>FACTURE</h1>
+
+            <div class="document-number">
+                {{ facture.numero }}
+            </div>
+        </td>
+    </tr>
+</table>
+
+<table class="info-table">
+    <tr>
+        <td>
+            <div class="section-title">Client</div>
+
+            <div>
+                {{ facture.client.prenom }}
+                {{ facture.client.nom }}
+            </div>
+
+            {% if facture.client.entreprise %}
+                <div>{{ facture.client.entreprise }}</div>
+            {% endif %}
+
+            {% if facture.client.email %}
+                <div>{{ facture.client.email }}</div>
+            {% endif %}
+
+            {% if facture.client.adresse %}
+                <div>{{ facture.client.adresse }}</div>
+            {% endif %}
+
+            <div>
+                {{ facture.client.codePostal }}
+                {{ facture.client.ville }}
+            </div>
+
+            {% if facture.client.pays %}
+                <div>{{ facture.client.pays }}</div>
+            {% endif %}
+        </td>
+
+        <td>
+            <div class="section-title">Informations</div>
+
+            <div>
+                Date d’émission :
+                {{ facture.dateEmission|date('d/m/Y') }}
+            </div>
+
+            <div>
+                Date d’échéance :
+                {{ facture.dateEcheance|date('d/m/Y') }}
+            </div>
+
+            <div>
+                Statut :
+                <span class="status-badge {{ statutClass[facture.statut.value]|default('status-brouillon') }}">
+                    {{ facture.statut.value }}
+                </span>
+            </div>
+        </td>
+    </tr>
+</table>
+
+<table class="lines-table">
+    <thead>
+    <tr>
+        <th>Désignation</th>
+        <th class="text-right">Quantité</th>
+        <th class="text-right">Prix HT</th>
+        <th class="text-right">TVA</th>
+        <th class="text-right">Remise</th>
+        <th class="text-right">Total HT</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    {% for ligne in facture.ligneFactures %}
+        <tr>
+            <td>
+                <strong>{{ ligne.designation }}</strong>
+
+                {% if ligne.description %}
+                    <div class="designation-description">
+                        {{ ligne.description }}
+                    </div>
+                {% endif %}
+            </td>
+
+            <td class="text-right">
+                {{ ligne.quantite|number_format(2, ',', ' ') }}
+
+                {% if ligne.unite %}
+                    {{ ligne.unite }}
+                {% endif %}
+            </td>
+
+            <td class="text-right">
+                {{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }} €
+            </td>
+
+            <td class="text-right">
+                {{ ligne.tva|number_format(2, ',', ' ') }} %
+            </td>
+
+            <td class="text-right">
+                {{ ligne.remise|default('0')|number_format(2, ',', ' ') }} %
+            </td>
+
+            <td class="text-right">
+                {{ ligne.totalHT|number_format(2, ',', ' ') }} €
+            </td>
+        </tr>
+    {% else %}
+        <tr>
+            <td colspan="6">
+                Aucune ligne de facture.
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<div class="totals-wrapper">
+    <table class="totals-table">
+        <tr>
+            <td>Total HT</td>
+            <td class="text-right">
+                {{ facture.totalHT|number_format(2, ',', ' ') }} €
+            </td>
+        </tr>
+
+        <tr>
+            <td>Total TVA</td>
+            <td class="text-right">
+                {{ facture.totalTVA|number_format(2, ',', ' ') }} €
+            </td>
+        </tr>
+
+        <tr class="total-ttc">
+            <td>Total TTC</td>
+            <td class="text-right">
+                {{ facture.totalTTC|number_format(2, ',', ' ') }} €
+            </td>
+        </tr>
+    </table>
+</div>
+
+{% if facture.commentaire %}
+    <div class="comment">
+        <strong>Commentaire</strong>
+        <br><br>
+        {{ facture.commentaire|nl2br }}
+    </div>
+{% endif %}
+
+<div class="footer">
+    Facture {{ facture.numero }} — Document généré par FACTURA
+</div>
+</body>
+</html>

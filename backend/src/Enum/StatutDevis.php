@@ -10,4 +10,5 @@ enum StatutDevis: string
     case ACCEPTE = 'Accepté';
     case REFUSE = 'Refusé';
     case EXPIRE = 'Expiré';
+    case TRANSFORME = 'Transformé';
 }

@@ -3,10 +3,10 @@
 namespace App\Entity;
 
 use App\Enum\ModePaiement;
+use App\Enum\StatutPaiement;
 use App\Repository\PaiementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-
 
 #[ORM\Entity(repositoryClass: PaiementRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -25,6 +25,9 @@ class Paiement
 
     #[ORM\Column(length: 30, enumType: ModePaiement::class)]
     private ModePaiement $modePaiement;
+
+    #[ORM\Column(length: 20, enumType: StatutPaiement::class)]
+    private StatutPaiement $statut = StatutPaiement::VALIDE;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $reference = null;
@@ -79,6 +82,18 @@ class Paiement
     public function setModePaiement(ModePaiement $modePaiement): static
     {
         $this->modePaiement = $modePaiement;
+
+        return $this;
+    }
+
+    public function getStatut(): StatutPaiement
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(StatutPaiement $statut): static
+    {
+        $this->statut = $statut;
 
         return $this;
     }
