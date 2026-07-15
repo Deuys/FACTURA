@@ -5,6 +5,7 @@ namespace App\Enum;
 enum StatutFacture: string
 {
     case BROUILLON = 'Brouillon';
+    case PLANIFIEE = 'Planifiée';
     case EN_ATTENTE = 'En attente';
     case ENVOYEE = 'Envoyée';
     case PAYEE = 'Payée';

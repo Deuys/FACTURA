@@ -24,6 +24,9 @@ class Facture
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $dateEmission = null;
 
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $dateEmissionPrevue = null;
+
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
     private ?\DateTimeImmutable $dateEcheance = null;
 
@@ -108,6 +111,17 @@ class Facture
         return $this;
     }
 
+    public function getDateEmissionPrevue(): ?\DateTimeImmutable
+    {
+        return $this->dateEmissionPrevue;
+    }
+
+    public function setDateEmissionPrevue(?\DateTimeImmutable $dateEmissionPrevue): static
+    {
+        $this->dateEmissionPrevue = $dateEmissionPrevue;
+
+        return $this;
+    }
     public function getDateEcheance(): ?\DateTimeImmutable
     {
         return $this->dateEcheance;
@@ -229,7 +243,6 @@ class Facture
     }
 
     #[ORM\PrePersist]
-
     public function initializeTimestamps(): void
     {
         $now = new \DateTimeImmutable();
