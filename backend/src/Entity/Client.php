@@ -6,9 +6,9 @@ use App\Repository\ClientRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use App\Enum\TypeDelaiPaiement;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
-
 #[ORM\HasLifecycleCallbacks]
 class Client
 {
@@ -49,6 +49,16 @@ class Client
 
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $tvaIntracom = null;
+
+    #[ORM\Column(
+        length: 30,
+        enumType: TypeDelaiPaiement::class,
+        nullable: true
+    )]
+    private ?TypeDelaiPaiement $typeDelaiPaiement = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $delaiPaiement = null;
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -211,6 +221,31 @@ class Client
     public function setTvaIntracom(?string $tvaIntracom): static
     {
         $this->tvaIntracom = $tvaIntracom;
+
+        return $this;
+    }
+
+    public function getTypeDelaiPaiement(): ?TypeDelaiPaiement
+    {
+        return $this->typeDelaiPaiement;
+    }
+
+    public function setTypeDelaiPaiement(
+        ?TypeDelaiPaiement $typeDelaiPaiement
+    ): static {
+        $this->typeDelaiPaiement = $typeDelaiPaiement;
+
+        return $this;
+    }
+
+    public function getDelaiPaiement(): ?int
+    {
+        return $this->delaiPaiement;
+    }
+
+    public function setDelaiPaiement(?int $delaiPaiement): static
+    {
+        $this->delaiPaiement = $delaiPaiement;
 
         return $this;
     }

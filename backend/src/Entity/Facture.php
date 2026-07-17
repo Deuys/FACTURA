@@ -45,6 +45,9 @@ class Facture
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $commentaire = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $archivee = false;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -190,6 +193,18 @@ class Facture
     public function setCommentaire(?string $commentaire): static
     {
         $this->commentaire = $commentaire;
+
+        return $this;
+    }
+
+    public function isArchivee(): bool
+    {
+        return $this->archivee;
+    }
+
+    public function setArchivee(bool $archivee): static
+    {
+        $this->archivee = $archivee;
 
         return $this;
     }

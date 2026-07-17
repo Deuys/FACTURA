@@ -11,6 +11,8 @@ use App\Entity\Devis;
 use App\Entity\User;
 use App\Enum\StatutDevis;
 use App\Service\NumerotationService;
+use App\Service\ActiviteService;
+use App\Repository\DevisRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,19 +24,69 @@ final class DevisController extends AbstractController
 {
     #[Route('/api/devis', name: 'api_devis_list', methods: ['GET'])]
     public function index(
-        EntityManagerInterface $entityManager,
+        Request $request,
+        DevisRepository $devisRepository,
         #[CurrentUser] User $user
     ): JsonResponse {
-        $devis = $entityManager
-            ->getRepository(Devis::class)
-            ->findBy(['user' => $user]);
+        $recherche = $request->query->getString('recherche');
+        $statutParam = $request->query->get('statut');
+        $tri = $request->query->getString('tri', 'dateEmission');
+        $ordre = strtoupper(
+            $request->query->getString('ordre', 'DESC')
+        );
+
+        $statut = null;
+
+        if (
+            is_string($statutParam)
+            && trim($statutParam) !== ''
+            && strtolower($statutParam) !== 'tous'
+        ) {
+            $statut = StatutDevis::tryFrom($statutParam);
+
+            if ($statut === null) {
+                return $this->json(
+                    [
+                        'message' => 'Statut de devis invalide.',
+                        'statutsAutorises' => array_map(
+                            static fn(StatutDevis $statut): string =>
+                            $statut->value,
+                            StatutDevis::cases()
+                        ),
+                    ],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
+
+        if (!in_array($ordre, ['ASC', 'DESC'], true)) {
+            return $this->json(
+                [
+                    'message' => 'Ordre de tri invalide.',
+                    'ordresAutorises' => ['ASC', 'DESC'],
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $devis = $devisRepository->findForUserWithFilters(
+            user: $user,
+            recherche: $recherche,
+            statut: $statut,
+            tri: $tri,
+            ordre: $ordre
+        );
 
         $data = array_map(
             static fn(Devis $devis): array => [
                 'id' => $devis->getId(),
                 'numero' => $devis->getNumero(),
-                'dateEmission' => $devis->getDateEmission()?->format('Y-m-d'),
-                'dateValidite' => $devis->getDateValidite()?->format('Y-m-d'),
+                'dateEmission' => $devis
+                    ->getDateEmission()
+                    ?->format('Y-m-d'),
+                'dateValidite' => $devis
+                    ->getDateValidite()
+                    ?->format('Y-m-d'),
                 'statut' => $devis->getStatut()->value,
                 'totalHT' => $devis->getTotalHT(),
                 'totalTVA' => $devis->getTotalTVA(),
@@ -44,21 +96,37 @@ final class DevisController extends AbstractController
                     'id' => $devis->getClient()?->getId(),
                     'nom' => $devis->getClient()?->getNom(),
                     'prenom' => $devis->getClient()?->getPrenom(),
-                    'entreprise' => $devis->getClient()?->getEntreprise(),
+                    'entreprise' => $devis
+                        ->getClient()
+                        ?->getEntreprise(),
                 ],
-                'createdAt' => $devis->getCreatedAt()?->format(DATE_ATOM),
-                'updatedAt' => $devis->getUpdatedAt()?->format(DATE_ATOM),
+                'createdAt' => $devis
+                    ->getCreatedAt()
+                    ?->format(DATE_ATOM),
+                'updatedAt' => $devis
+                    ->getUpdatedAt()
+                    ?->format(DATE_ATOM),
             ],
             $devis
         );
 
-        return $this->json($data);
+        return $this->json([
+            'filtres' => [
+                'recherche' => $recherche,
+                'statut' => $statut?->value,
+                'tri' => $tri,
+                'ordre' => $ordre,
+            ],
+            'nombreResultats' => count($data),
+            'devis' => $data,
+        ]);
     }
     #[Route('/api/devis', name: 'api_devis_create', methods: ['POST'])]
     public function create(
         Request $request,
         EntityManagerInterface $entityManager,
         NumerotationService $numerotationService,
+        ActiviteService $activiteService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -91,6 +159,24 @@ final class DevisController extends AbstractController
         $devis->setUser($user);
 
         $entityManager->persist($devis);
+        $activiteService->enregistrer(
+            user: $user,
+            type: 'devis_cree',
+            titre: 'Nouveau devis créé',
+            description: sprintf(
+                '%s • %s',
+                $devis->getNumero(),
+                $devis->getClient()?->getEntreprise()
+                    ?: trim(
+                        sprintf(
+                            '%s %s',
+                            $devis->getClient()?->getPrenom() ?? '',
+                            $devis->getClient()?->getNom() ?? ''
+                        )
+                    )
+            )
+        );
+
         $entityManager->flush();
 
         return $this->json(

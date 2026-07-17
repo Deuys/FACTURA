@@ -8,6 +8,7 @@ enum StatutFacture: string
     case PLANIFIEE = 'Planifiée';
     case EN_ATTENTE = 'En attente';
     case ENVOYEE = 'Envoyée';
+    case PARTIELLEMENT_PAYEE = 'Partiellement payée';
     case PAYEE = 'Payée';
     case EN_RETARD = 'En retard';
 }

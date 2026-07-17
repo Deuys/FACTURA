@@ -25,6 +25,21 @@ services:
       retries: 10
       start_period: 30s
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: factura-mailpit
+    restart: unless-stopped
+
+    ports:
+      - "8025:8025"
+
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+
+    volumes:
+      - factura_mailpit_data:/data
+
   php:
     build:
       context: .
@@ -41,12 +56,13 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   nginx:
     image: nginx:alpine
 
     container_name: factura-nginx
-
     restart: unless-stopped
 
     ports:
@@ -65,7 +81,6 @@ services:
       dockerfile: docker/frontend/Dockerfile
 
     container_name: factura-frontend
-
     restart: unless-stopped
 
     ports:
@@ -81,3 +96,4 @@ services:
 volumes:
   factura_mysql_data:
   factura_node_modules:
+  factura_mailpit_data:

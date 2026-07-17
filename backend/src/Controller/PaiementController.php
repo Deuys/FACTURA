@@ -7,7 +7,10 @@ use App\Entity\Paiement;
 use App\Entity\User;
 use App\Enum\ModePaiement;
 use App\Enum\StatutFacture;
+use App\Enum\StatutPaiement;
+use App\Repository\PaiementRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\ActiviteService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,19 +21,116 @@ final class PaiementController extends AbstractController
 {
     #[Route('/api/paiements', name: 'api_paiements_list', methods: ['GET'])]
     public function index(
-        EntityManagerInterface $entityManager,
+        Request $request,
+        PaiementRepository $paiementRepository,
         #[CurrentUser] User $user
     ): JsonResponse {
-        $paiements = $entityManager
-            ->getRepository(Paiement::class)
-            ->createQueryBuilder('paiement')
-            ->join('paiement.facture', 'facture')
-            ->andWhere('facture.user = :user')
-            ->setParameter('user', $user)
-            ->orderBy('paiement.datePaiement', 'DESC')
-            ->addOrderBy('paiement.createdAt', 'DESC')
-            ->getQuery()
-            ->getResult();
+        $recherche = trim(
+            (string) $request->query->get('recherche', '')
+        );
+
+        $modeParametre = trim(
+            (string) $request->query->get('modePaiement', '')
+        );
+
+        $statutParametre = trim(
+            (string) $request->query->get('statut', '')
+        );
+
+        $tri = trim(
+            (string) $request->query->get(
+                'tri',
+                'datePaiement'
+            )
+        );
+
+        $ordre = strtoupper(
+            trim(
+                (string) $request->query->get(
+                    'ordre',
+                    'DESC'
+                )
+            )
+        );
+
+        $modePaiement = null;
+
+        if ($modeParametre !== '') {
+            $modePaiement = ModePaiement::tryFrom(
+                $modeParametre
+            );
+
+            if ($modePaiement === null) {
+                return $this->json(
+                    [
+                        'message' =>
+                        'Le mode de paiement demandé est invalide.',
+                        'modesPaiementAutorises' =>
+                        $this->modesPaiementAutorises(),
+                    ],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
+
+        $statut = null;
+
+        if ($statutParametre !== '') {
+            $statut = StatutPaiement::tryFrom(
+                $statutParametre
+            );
+
+            if ($statut === null) {
+                return $this->json(
+                    [
+                        'message' =>
+                        'Le statut de paiement demandé est invalide.',
+                        'statutsAutorises' => array_map(
+                            static fn(
+                                StatutPaiement $statut
+                            ): string => $statut->value,
+                            StatutPaiement::cases()
+                        ),
+                    ],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
+
+        if (
+            !$paiementRepository->isSortFieldAllowed($tri)
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Le champ de tri demandé est invalide.',
+                    'trisAutorises' =>
+                    $paiementRepository
+                        ->getAllowedSortFields(),
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (!in_array($ordre, ['ASC', 'DESC'], true)) {
+            return $this->json(
+                [
+                    'message' =>
+                    'L’ordre doit être ASC ou DESC.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $paiements =
+            $paiementRepository->findForUserWithFilters(
+                user: $user,
+                recherche: $recherche,
+                modePaiement: $modePaiement,
+                statut: $statut,
+                tri: $tri,
+                ordre: $ordre
+            );
 
         $data = array_map(
             fn(Paiement $paiement): array =>
@@ -38,13 +138,27 @@ final class PaiementController extends AbstractController
             $paiements
         );
 
-        return $this->json($data);
+        return $this->json([
+            'filtres' => [
+                'recherche' => $recherche !== ''
+                    ? $recherche
+                    : null,
+                'modePaiement' =>
+                $modePaiement?->value,
+                'statut' => $statut?->value,
+                'tri' => $tri,
+                'ordre' => $ordre,
+            ],
+            'nombreResultats' => count($data),
+            'paiements' => $data,
+        ]);
     }
 
     #[Route('/api/paiements', name: 'api_paiements_create', methods: ['POST'])]
     public function create(
         Request $request,
         EntityManagerInterface $entityManager,
+        ActiviteService $activiteService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -148,6 +262,24 @@ final class PaiementController extends AbstractController
         $entityManager->persist($paiement);
 
         $this->mettreAJourStatutFacture($facture);
+
+        $activiteService->enregistrer(
+            user: $user,
+            type: 'paiement_recu',
+            titre: 'Paiement reçu',
+            description: sprintf(
+                '%s • %s',
+                $facture->getNumero(),
+                $facture->getClient()?->getEntreprise()
+                    ?: trim(
+                        sprintf(
+                            '%s %s',
+                            $facture->getClient()?->getPrenom() ?? '',
+                            $facture->getClient()?->getNom() ?? ''
+                        )
+                    )
+            )
+        );
 
         $entityManager->flush();
 
@@ -372,14 +504,44 @@ final class PaiementController extends AbstractController
         $totalTTC = (float) ($facture->getTotalTTC() ?? '0.00');
         $totalPaye = $this->calculerTotalPaye($facture);
 
+        /*
+     * Facture entièrement payée.
+     */
         if ($totalTTC > 0 && $totalPaye >= $totalTTC) {
             $facture->setStatut(StatutFacture::PAYEE);
 
             return;
         }
 
-        if ($facture->getStatut() === StatutFacture::PAYEE) {
-            $facture->setStatut(StatutFacture::EN_ATTENTE);
+        /*
+     * Au moins un paiement enregistré,
+     * mais le total TTC n'est pas encore atteint.
+     */
+        if ($totalPaye > 0) {
+            $facture->setStatut(
+                StatutFacture::PARTIELLEMENT_PAYEE
+            );
+
+            return;
+        }
+
+        /*
+     * Aucun paiement restant après une modification
+     * ou une suppression.
+     */
+        if (
+            in_array(
+                $facture->getStatut(),
+                [
+                    StatutFacture::PAYEE,
+                    StatutFacture::PARTIELLEMENT_PAYEE,
+                ],
+                true
+            )
+        ) {
+            $facture->setStatut(
+                StatutFacture::EN_ATTENTE
+            );
         }
     }
 
@@ -396,6 +558,8 @@ final class PaiementController extends AbstractController
                 ?->format('Y-m-d'),
             'modePaiement' =>
             $paiement->getModePaiement()->value,
+            'statut' =>
+            $paiement->getStatut()->value,
             'reference' => $paiement->getReference(),
             'commentaire' => $paiement->getCommentaire(),
             'facture' => [
@@ -403,6 +567,13 @@ final class PaiementController extends AbstractController
                 'numero' => $facture?->getNumero(),
                 'totalTTC' => $facture?->getTotalTTC(),
                 'statut' => $facture?->getStatut()->value,
+                'client' => [
+                    'id' => $facture?->getClient()?->getId(),
+                    'nom' => $facture?->getClient()?->getNom(),
+                    'prenom' => $facture?->getClient()?->getPrenom(),
+                    'entreprise' =>
+                    $facture?->getClient()?->getEntreprise(),
+                ],
             ],
             'createdAt' => $paiement
                 ->getCreatedAt()

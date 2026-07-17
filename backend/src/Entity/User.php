@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
+
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -57,6 +58,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Devis::class, mappedBy: 'user')]
     private Collection $devis;
 
+    /**
+     * @var Collection<int, Activite>
+     */
+    #[ORM\OneToMany(
+        targetEntity: Activite::class,
+        mappedBy: 'user',
+        orphanRemoval: true
+    )]
+    private Collection $activites;
+
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?Entreprise $entreprise = null;
 
@@ -66,6 +77,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->produits = new ArrayCollection();
         $this->factures = new ArrayCollection();
         $this->devis = new ArrayCollection();
+        $this->activites = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -258,6 +270,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         if ($entreprise !== null && $entreprise->getUser() !== $this) {
             $entreprise->setUser($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Activite>
+     */
+    public function getActivites(): Collection
+    {
+        return $this->activites;
+    }
+
+    public function addActivite(Activite $activite): static
+    {
+        if (!$this->activites->contains($activite)) {
+            $this->activites->add($activite);
+            $activite->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeActivite(Activite $activite): static
+    {
+        if ($this->activites->removeElement($activite)) {
+            if ($activite->getUser() === $this) {
+                $activite->setUser(null);
+            }
         }
 
         return $this;

@@ -11,12 +11,15 @@ use App\Entity\User;
 use App\Enum\StatutDevis;
 use App\Enum\StatutFacture;
 use App\Enum\StatutPaiement;
+use App\Entity\Activite;
+use App\Repository\ActiviteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class DashboardService
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly ActiviteRepository $activiteRepository
     ) {}
 
     public function getDashboard(User $user): array
@@ -419,126 +422,28 @@ final class DashboardService
         ];
     }
 
-    public function getActiviteRecente(User $user): array
-    {
-        $activites = [];
+    public function getActiviteRecente(
+        User $user,
+        int $limite = 5
+    ): array {
+        $activites = $this->activiteRepository
+            ->findLatestForUser($user, $limite);
 
-        $factures = $this->entityManager
-            ->getRepository(Facture::class)
-            ->createQueryBuilder('f')
-            ->leftJoin('f.client', 'c')
-            ->addSelect('c')
-            ->andWhere('f.user = :user')
-            ->setParameter('user', $user)
-            ->orderBy('f.createdAt', 'DESC')
-            ->setMaxResults(5)
-            ->getQuery()
-            ->getResult();
-
-        foreach ($factures as $facture) {
-            $activites[] = [
-                'type' => 'facture',
-                'titre' => 'Facture créée',
-                'reference' => $facture->getNumero(),
-                'client' => $facture->getClient()?->getEntreprise()
-                    ?? trim(
-                        ($facture->getClient()?->getPrenom() ?? '')
-                            . ' '
-                            . ($facture->getClient()?->getNom() ?? '')
-                    ),
-                'date' => $facture->getCreatedAt()?->format(DATE_ATOM),
-            ];
-        }
-
-        $devis = $this->entityManager
-            ->getRepository(Devis::class)
-            ->createQueryBuilder('d')
-            ->leftJoin('d.client', 'c')
-            ->addSelect('c')
-            ->andWhere('d.user = :user')
-            ->setParameter('user', $user)
-            ->orderBy('d.createdAt', 'DESC')
-            ->setMaxResults(5)
-            ->getQuery()
-            ->getResult();
-
-        foreach ($devis as $devisItem) {
-            $activites[] = [
-                'type' => 'devis',
-                'titre' => 'Devis créé',
-                'reference' => $devisItem->getNumero(),
-                'client' => $devisItem->getClient()?->getEntreprise()
-                    ?? trim(
-                        ($devisItem->getClient()?->getPrenom() ?? '')
-                            . ' '
-                            . ($devisItem->getClient()?->getNom() ?? '')
-                    ),
-                'date' => $devisItem->getCreatedAt()?->format(DATE_ATOM),
-            ];
-        }
-
-        $paiements = $this->entityManager
-            ->getRepository(Paiement::class)
-            ->createQueryBuilder('p')
-            ->innerJoin('p.facture', 'f')
-            ->leftJoin('f.client', 'c')
-            ->addSelect('f', 'c')
-            ->andWhere('f.user = :user')
-            ->setParameter('user', $user)
-            ->orderBy('p.createdAt', 'DESC')
-            ->setMaxResults(5)
-            ->getQuery()
-            ->getResult();
-
-        foreach ($paiements as $paiement) {
-            $activites[] = [
-                'type' => 'paiement',
-                'titre' => 'Paiement reçu',
-                'reference' => $paiement->getFacture()?->getNumero(),
-                'client' => $paiement->getFacture()?->getClient()?->getEntreprise()
-                    ?? trim(
-                        ($paiement->getFacture()?->getClient()?->getPrenom() ?? '')
-                            . ' '
-                            . ($paiement->getFacture()?->getClient()?->getNom() ?? '')
-                    ),
-                'montant' => $paiement->getMontant(),
-                'date' => $paiement->getCreatedAt()?->format(DATE_ATOM),
-            ];
-        }
-
-        $clients = $this->entityManager
-            ->getRepository(Client::class)
-            ->createQueryBuilder('c')
-            ->andWhere('c.user = :user')
-            ->setParameter('user', $user)
-            ->orderBy('c.createdAt', 'DESC')
-            ->setMaxResults(5)
-            ->getQuery()
-            ->getResult();
-
-        foreach ($clients as $client) {
-            $activites[] = [
-                'type' => 'client',
-                'titre' => 'Nouveau client ajouté',
-                'reference' => null,
-                'client' => $client->getEntreprise()
-                    ?? trim(
-                        ($client->getPrenom() ?? '')
-                            . ' '
-                            . ($client->getNom() ?? '')
-                    ),
-                'date' => $client->getCreatedAt()?->format(DATE_ATOM),
-            ];
-        }
-
-        usort(
-            $activites,
-            static fn(array $a, array $b): int =>
-            strcmp((string) $b['date'], (string) $a['date'])
+        return array_map(
+            static fn(Activite $activite): array => [
+                'id' => $activite->getId(),
+                'type' => $activite->getType(),
+                'titre' => $activite->getTitre(),
+                'description' => $activite->getDescription(),
+                'date' => $activite
+                    ->getCreatedAt()
+                    ?->format(DATE_ATOM),
+            ],
+            $activites
         );
-
-        return array_slice($activites, 0, 5);
     }
+
+
 
     public function getDernieresFactures(User $user): array
     {

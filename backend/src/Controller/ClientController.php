@@ -8,6 +8,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Entity\User;
+use App\Service\ActiviteService;
+use App\Repository\ClientRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -15,39 +17,92 @@ final class ClientController extends AbstractController
 {
     #[Route('/api/clients', name: 'api_clients_list', methods: ['GET'])]
     public function index(
-        EntityManagerInterface $entityManager,
+        Request $request,
+        ClientRepository $clientRepository,
         #[CurrentUser] User $user
     ): JsonResponse {
-        $clients = $entityManager
-            ->getRepository(Client::class)
-            ->findBy(['user' => $user]);
+        $recherche = trim(
+            (string) $request->query->get('recherche', '')
+        );
+
+        $filtre = trim(
+            (string) $request->query->get('filtre', 'tous')
+        );
+
+        $tri = trim(
+            (string) $request->query->get('tri', 'nom')
+        );
+
+        $ordre = strtoupper(
+            trim(
+                (string) $request->query->get('ordre', 'ASC')
+            )
+        );
+
+        if (!$clientRepository->isFilterAllowed($filtre)) {
+            return $this->json(
+                [
+                    'message' => 'Le filtre client demandé est invalide.',
+                    'filtresAutorises' =>
+                    $clientRepository->getAllowedFilters(),
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (!$clientRepository->isSortFieldAllowed($tri)) {
+            return $this->json(
+                [
+                    'message' => 'Le champ de tri demandé est invalide.',
+                    'trisAutorises' =>
+                    $clientRepository->getAllowedSortFields(),
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (!in_array($ordre, ['ASC', 'DESC'], true)) {
+            return $this->json(
+                [
+                    'message' => 'L’ordre doit être ASC ou DESC.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $clients = $clientRepository->findForUserWithFilters(
+            user: $user,
+            recherche: $recherche,
+            filtre: $filtre,
+            tri: $tri,
+            ordre: $ordre
+        );
 
         $data = array_map(
-            static fn(Client $client): array => [
-                'id' => $client->getId(),
-                'nom' => $client->getNom(),
-                'prenom' => $client->getPrenom(),
-                'entreprise' => $client->getEntreprise(),
-                'email' => $client->getEmail(),
-                'telephone' => $client->getTelephone(),
-                'adresse' => $client->getAdresse(),
-                'codePostal' => $client->getCodePostal(),
-                'ville' => $client->getVille(),
-                'pays' => $client->getPays(),
-                'siret' => $client->getSiret(),
-                'tvaIntracom' => $client->getTvaIntracom(),
-                'createdAt' => $client->getCreatedAt()?->format(DATE_ATOM),
-                'updatedAt' => $client->getUpdatedAt()?->format(DATE_ATOM),
-            ],
+            fn(Client $client): array =>
+            $this->transformerClient($client),
             $clients
         );
 
-        return $this->json($data);
+        return $this->json([
+            'filtres' => [
+                'recherche' => $recherche !== ''
+                    ? $recherche
+                    : null,
+                'filtre' => $filtre,
+                'tri' => $tri,
+                'ordre' => $ordre,
+            ],
+            'nombreResultats' => count($data),
+            'clients' => $data,
+        ]);
     }
+
     #[Route('/api/clients', name: 'api_clients_create', methods: ['POST'])]
     public function create(
         Request $request,
         EntityManagerInterface $entityManager,
+        ActiviteService $activiteService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -69,6 +124,21 @@ final class ClientController extends AbstractController
         $client->setUser($user);
 
         $entityManager->persist($client);
+
+        $activiteService->enregistrer(
+            user: $user,
+            type: 'client_ajoute',
+            titre: 'Nouveau client ajouté',
+            description: $client->getEntreprise()
+                ?: trim(
+                    sprintf(
+                        '%s %s',
+                        $client->getPrenom() ?? '',
+                        $client->getNom() ?? ''
+                    )
+                )
+        );
+
         $entityManager->flush();
 
         return $this->json([
@@ -208,5 +278,32 @@ final class ClientController extends AbstractController
         return $this->json([
             'message' => 'Client supprimé avec succès.'
         ]);
+    }
+
+    private function transformerClient(Client $client): array
+    {
+        return [
+            'id' => $client->getId(),
+            'nom' => $client->getNom(),
+            'prenom' => $client->getPrenom(),
+            'entreprise' => $client->getEntreprise(),
+            'email' => $client->getEmail(),
+            'telephone' => $client->getTelephone(),
+            'adresse' => $client->getAdresse(),
+            'codePostal' => $client->getCodePostal(),
+            'ville' => $client->getVille(),
+            'pays' => $client->getPays(),
+            'siret' => $client->getSiret(),
+            'tvaIntracom' => $client->getTvaIntracom(),
+            'typeDelaiPaiement' =>
+            $client->getTypeDelaiPaiement()?->value,
+            'delaiPaiement' => $client->getDelaiPaiement(),
+            'createdAt' => $client
+                ->getCreatedAt()
+                ?->format(DATE_ATOM),
+            'updatedAt' => $client
+                ->getUpdatedAt()
+                ?->format(DATE_ATOM),
+        ];
     }
 }

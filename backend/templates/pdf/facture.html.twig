@@ -5,12 +5,12 @@
 
     <style>
         @page {
-            margin: 25px 35px;
+            margin: 18px 30px 24px;
         }
 
         body {
             font-family: Inter, DejaVu Sans, sans-serif;
-            font-size: 12px;
+            font-size: 11px;
             color: #111827;
             background: #FFFFFF;
         }
@@ -25,22 +25,36 @@
         .header-table,
         .info-table,
         .lines-table,
-        .totals-table {
+        .totals-table,
+        .payment-table,
+        .legal-table {
             width: 100%;
             border-collapse: collapse;
         }
 
         .header-table {
-            margin-bottom: 25px;
+            margin-bottom: 22px;
         }
 
         .header-table td {
             vertical-align: top;
         }
 
-        .brand {
-            font-size: 17px;
+        .company-name {
+            margin-bottom: 6px;
+            font-size: 18px;
             font-weight: bold;
+            color: #111827;
+        }
+
+        .company-details {
+            color: #555555;
+            line-height: 1.45;
+        }
+
+        .factura-brand {
+            margin-top: 8px;
+            font-size: 9px;
             color: #2563EB;
         }
 
@@ -54,10 +68,10 @@
         }
 
         .info-table {
-            margin-bottom: 25px;
+            margin-bottom: 22px;
         }
 
-        .info-table td {
+        .info-table > tbody > tr > td {
             width: 50%;
             vertical-align: top;
             padding: 12px;
@@ -67,12 +81,27 @@
 
         .section-title {
             margin-bottom: 8px;
+            font-size: 10px;
             font-weight: bold;
-            color: #111827;
+            color: #2563EB;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .info-line {
+            margin-bottom: 3px;
         }
 
         .lines-table {
             table-layout: fixed;
+        }
+
+        .lines-table thead {
+            display: table-header-group;
+        }
+
+        .lines-table tr {
+            page-break-inside: avoid;
         }
 
         .lines-table th,
@@ -89,6 +118,30 @@
             font-weight: bold;
         }
 
+        .lines-table th:nth-child(1) {
+            width: 32%;
+        }
+
+        .lines-table th:nth-child(2) {
+            width: 13%;
+        }
+
+        .lines-table th:nth-child(3) {
+            width: 14%;
+        }
+
+        .lines-table th:nth-child(4) {
+            width: 10%;
+        }
+
+        .lines-table th:nth-child(5) {
+            width: 12%;
+        }
+
+        .lines-table th:nth-child(6) {
+            width: 19%;
+        }
+
         .lines-table tbody tr:nth-child(even) {
             background: #F8FAFC;
         }
@@ -96,7 +149,8 @@
         .designation-description {
             margin-top: 3px;
             color: #555555;
-            font-size: 10px;
+            font-size: 9px;
+            line-height: 1.35;
         }
 
         .text-right {
@@ -104,29 +158,63 @@
         }
 
         .totals-wrapper {
-            margin-top: 20px;
+            margin-top: 18px;
+            page-break-inside: avoid;
         }
 
         .totals-table {
-            width: 42%;
+            width: 44%;
             margin-left: auto;
         }
 
         .totals-table td {
-            padding: 8px;
+            padding: 8px 10px;
             border-bottom: 1px solid #E5E7EB;
         }
 
         .total-ttc td {
+            padding-top: 10px;
+            padding-bottom: 10px;
             color: #2563EB;
+            background: #EFF6FF;
             font-size: 14px;
             font-weight: bold;
             border-top: 2px solid #2563EB;
+            border-bottom: 2px solid #2563EB;
+        }
+
+        .payment-wrapper {
+            margin-top: 18px;
+            page-break-inside: avoid;
+        }
+
+        .payment-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 12px;
+            border: 1px solid #E5E7EB;
+        }
+
+        .payment-label {
+            color: #555555;
+        }
+
+        .payment-value {
+            margin-top: 2px;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .bank-details {
+            margin-top: 8px;
+            padding: 10px;
+            background: #F8FAFC;
+            border: 1px solid #E5E7EB;
         }
 
         .comment {
-            margin-top: 30px;
-            padding: 12px;
+            margin-top: 16px;
+            padding: 10px;
             background: #F8FAFC;
             border: 1px solid #E5E7EB;
             color: #555555;
@@ -136,73 +224,72 @@
             color: #111827;
         }
 
-        .status-badge {
-            display: inline-block;
-            margin-left: 4px;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: bold;
-            vertical-align: middle;
-            line-height: 1;
-        }
-
-        .status-payee {
-            color: #22C55E;
-            background: #DCFCE7;
-        }
-
-        .status-en-attente {
-            color: #F59E0B;
-            background: #FEF3C7;
-        }
-
-        .status-envoyee {
-            color: #3B82F6;
-            background: #DBEAFE;
-        }
-
-        .status-en-retard {
-            color: #EF4444;
-            background: #FEE2E2;
-        }
-
-        .status-brouillon {
+        .legal-block {
+            margin-top: 10px;
+            padding-top: 6px;
+            border-top: 1px solid #E5E7EB;
             color: #555555;
-            background: #EFF6FF;
-        }
-
-        .status-planifiee {
-            color: #844FDD;
-            background: #F3E8FF;
+            font-size: 7.5px;
+            line-height: 1.2;
         }
 
         .footer {
             position: fixed;
             right: 0;
-            bottom: -10px;
+            bottom: -20px;
             left: 0;
             color: #555555;
-            font-size: 9px;
+            font-size: 7px;
             text-align: center;
         }
     </style>
 </head>
 
 <body>
-{% set statutClass = {
-    'Payée': 'status-payee',
-    'En attente': 'status-en-attente',
-    'Envoyée': 'status-envoyee',
-    'En retard': 'status-en-retard',
-    'Brouillon': 'status-brouillon',
-    'Planifiée': 'status-planifiee'
-} %}
+{% set entreprise = facture.user.entreprise %}
 
 <table class="header-table">
     <tr>
         <td>
-            <div class="brand">FACTURA</div>
+            {% if entreprise %}
+                <div class="company-name">
+                    {{ entreprise.nom }}
+                </div>
+
+                <div class="company-details">
+                    <div>{{ entreprise.adresse }}</div>
+                    <div>
+                        {{ entreprise.codePostal }}
+                        {{ entreprise.ville }}
+                    </div>
+
+                    {% if entreprise.pays %}
+                        <div>{{ entreprise.pays }}</div>
+                    {% endif %}
+
+                    {% if entreprise.telephone %}
+                        <div>Tél. : {{ entreprise.telephone }}</div>
+                    {% endif %}
+
+                    {% if entreprise.email %}
+                        <div>{{ entreprise.email }}</div>
+                    {% endif %}
+
+                    {% if entreprise.siret %}
+                        <div>SIRET : {{ entreprise.siret }}</div>
+                    {% endif %}
+
+                    {% if entreprise.tvaIntracom %}
+                        <div>TVA intracom. : {{ entreprise.tvaIntracom }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="factura-brand">
+                    Document généré avec FACTURA
+                </div>
+            {% else %}
+                <div class="company-name">FACTURA</div>
+            {% endif %}
         </td>
 
         <td class="document-title">
@@ -218,7 +305,7 @@
 <table class="info-table">
     <tr>
         <td>
-            <div class="section-title">Client</div>
+            <div class="section-title">Facturé à</div>
 
             <div>
                 {{ facture.client.prenom }}
@@ -250,21 +337,19 @@
         <td>
             <div class="section-title">Informations</div>
 
-            <div>
+            <div class="info-line">
                 Date d’émission :
                 {{ facture.dateEmission|date('d/m/Y') }}
             </div>
 
-            <div>
+            <div class="info-line">
                 Date d’échéance :
                 {{ facture.dateEcheance|date('d/m/Y') }}
             </div>
 
-            <div>
-                Statut :
-                <span class="status-badge {{ statutClass[facture.statut.value]|default('status-brouillon') }}">
-                    {{ facture.statut.value }}
-                </span>
+            <div class="info-line">
+                Référence :
+                {{ facture.numero }}
             </div>
         </td>
     </tr>
@@ -274,7 +359,7 @@
     <thead>
     <tr>
         <th>Désignation</th>
-        <th class="text-right">Quantité</th>
+        <th class="text-right">Qté / Unité</th>
         <th class="text-right">Prix HT</th>
         <th class="text-right">TVA</th>
         <th class="text-right">Remise</th>
@@ -296,7 +381,13 @@
             </td>
 
             <td class="text-right">
-                {{ ligne.quantite|number_format(2, ',', ' ') }}
+                {% set quantite = ligne.quantite + 0 %}
+
+                {% if quantite == quantite|round(0, 'floor') %}
+                    {{ quantite|number_format(0, ',', ' ') }}
+                {% else %}
+                    {{ quantite|number_format(2, ',', ' ') }}
+                {% endif %}
 
                 {% if ligne.unite %}
                     {{ ligne.unite }}
@@ -339,14 +430,19 @@
         </tr>
 
         <tr>
-            <td>Total TVA</td>
+            <td>
+                TVA
+                {% if entreprise %}
+                    {{ entreprise.tauxTvaDefaut|number_format(2, ',', ' ') }} %
+                {% endif %}
+            </td>
             <td class="text-right">
                 {{ facture.totalTVA|number_format(2, ',', ' ') }} €
             </td>
         </tr>
 
         <tr class="total-ttc">
-            <td>Total TTC</td>
+            <td>TOTAL TTC</td>
             <td class="text-right">
                 {{ facture.totalTTC|number_format(2, ',', ' ') }} €
             </td>
@@ -354,16 +450,132 @@
     </table>
 </div>
 
+{% if entreprise %}
+    <div class="payment-wrapper">
+        <div class="section-title">Règlement</div>
+
+        <table class="payment-table">
+            <tr>
+                <td>
+                    <div class="payment-label">Conditions de règlement</div>
+                    <div class="payment-value">
+                        {% if entreprise.conditionsReglement %}
+                            {{ entreprise.conditionsReglement|nl2br }}
+                        {% else %}
+                            Paiement à {{ entreprise.delaiPaiement }} jours
+                        {% endif %}
+                    </div>
+                </td>
+
+                <td>
+                    <div class="payment-label">Date limite de paiement</div>
+                    <div class="payment-value">
+                        {{ facture.dateEcheance|date('d/m/Y') }}
+                    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    <div class="payment-label">Mode de paiement</div>
+                    <div class="payment-value">
+                        {{ entreprise.modePaiementDefaut.value }}
+                    </div>
+                </td>
+
+                <td>
+                    <div class="payment-label">Référence à rappeler</div>
+                    <div class="payment-value">
+                        {{ facture.numero }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        {% if entreprise.iban or entreprise.bic %}
+            <div class="bank-details">
+                {% if entreprise.iban %}
+                    <div>
+                        <strong>IBAN :</strong>
+                        {{ entreprise.iban }}
+                    </div>
+                {% endif %}
+
+                {% if entreprise.bic %}
+                    <div>
+                        <strong>BIC :</strong>
+                        {{ entreprise.bic }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
+
 {% if facture.commentaire %}
     <div class="comment">
-        <strong>Commentaire</strong>
+        <strong>Notes</strong>
         <br><br>
         {{ facture.commentaire|nl2br }}
     </div>
 {% endif %}
 
+{% if entreprise %}
+    <div class="legal-block">
+        {% if entreprise.formeJuridique %}
+            {{ entreprise.formeJuridique }}
+        {% endif %}
+
+        {% if entreprise.capitalSocial %}
+            — Capital social :
+            {{ entreprise.capitalSocial|number_format(2, ',', ' ') }} €
+        {% endif %}
+
+        {% if entreprise.rcs %}
+            — RCS
+            {% if entreprise.villeRcs %}
+                {{ entreprise.villeRcs }}
+            {% endif %}
+            {{ entreprise.rcs }}
+        {% endif %}
+
+        {% if entreprise.formeJuridique
+            or entreprise.capitalSocial
+            or entreprise.rcs
+        %}
+            <br>
+        {% endif %}
+
+        {% if entreprise.escomptePaiementAnticipe %}
+            Escompte pour paiement anticipé :
+            {{ entreprise.escomptePaiementAnticipe }}
+        {% else %}
+            Escompte pour paiement anticipé : néant.
+        {% endif %}
+
+        — Pénalités de retard :
+        {{ entreprise.tauxPenalitesRetard|number_format(2, ',', ' ') }} %
+
+        — Indemnité forfaitaire pour frais de recouvrement :
+        {{ entreprise.indemniteRecouvrement|number_format(2, ',', ' ') }} €
+
+        {% if entreprise.mentionTva %}
+            <br>
+            {{ entreprise.mentionTva|nl2br }}
+        {% endif %}
+    </div>
+{% endif %}
+
 <div class="footer">
-    Facture {{ facture.numero }} — Document généré par FACTURA
+    {% if entreprise %}
+        {{ entreprise.nom }}
+        {% if entreprise.siret %}
+            — SIRET {{ entreprise.siret }}
+        {% endif %}
+        —
+    {% endif %}
+
+    Facture {{ facture.numero }} — Document généré avec FACTURA
 </div>
 </body>
 </html>

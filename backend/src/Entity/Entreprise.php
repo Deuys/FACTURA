@@ -5,6 +5,8 @@ namespace App\Entity;
 use App\Repository\EntrepriseRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use App\Enum\ModePaiement;
+use App\Enum\TypeDelaiPaiement;
 
 #[ORM\Entity(repositoryClass: EntrepriseRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -59,14 +61,63 @@ class Entreprise
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $conditionsReglement = null;
 
+    #[ORM\Column(
+        length: 30,
+        enumType: TypeDelaiPaiement::class,
+        options: ['default' => 'Jours nets']
+    )]
+    private TypeDelaiPaiement $typeDelaiPaiement =
+    TypeDelaiPaiement::JOURS_NETS;
+
+    #[ORM\Column]
+    private ?int $delaiPaiement = 30;
+
+    #[ORM\Column(
+        length: 30,
+        enumType: ModePaiement::class,
+        options: ['default' => 'Virement bancaire']
+    )]
+    private ModePaiement $modePaiementDefaut = ModePaiement::VIREMENT;
+
+    #[ORM\Column(
+        type: Types::DECIMAL,
+        precision: 5,
+        scale: 2,
+        options: ['default' => '12.40']
+    )]
+    private ?string $tauxPenalitesRetard = '12.40';
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $escomptePaiementAnticipe = null;
+
+    #[ORM\Column(
+        type: Types::DECIMAL,
+        precision: 10,
+        scale: 2,
+        options: ['default' => '40.00']
+    )]
+    private ?string $indemniteRecouvrement = '40.00';
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $formeJuridique = null;
+
+    #[ORM\Column(type: Types::DECIMAL, precision: 15, scale: 2, nullable: true)]
+    private ?string $capitalSocial = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $rcs = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $villeRcs = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $mentionTva = null;
+
     #[ORM\Column(length: 10)]
     private ?string $devise = 'EUR';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
     private ?string $tauxTvaDefaut = '20.00';
-
-    #[ORM\Column]
-    private ?int $delaiPaiement = 30;
 
     #[ORM\Column(length: 20)]
     private ?string $prefixeDevis = 'DV';
@@ -277,6 +328,19 @@ class Entreprise
         return $this;
     }
 
+    public function getTypeDelaiPaiement(): TypeDelaiPaiement
+    {
+        return $this->typeDelaiPaiement;
+    }
+
+    public function setTypeDelaiPaiement(
+        TypeDelaiPaiement $typeDelaiPaiement
+    ): static {
+        $this->typeDelaiPaiement = $typeDelaiPaiement;
+
+        return $this;
+    }
+
     public function getDelaiPaiement(): ?int
     {
         return $this->delaiPaiement;
@@ -350,5 +414,115 @@ class Entreprise
     public function updateTimestamp(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function getModePaiementDefaut(): ModePaiement
+    {
+        return $this->modePaiementDefaut;
+    }
+
+    public function setModePaiementDefaut(ModePaiement $modePaiementDefaut): static
+    {
+        $this->modePaiementDefaut = $modePaiementDefaut;
+
+        return $this;
+    }
+
+    public function getTauxPenalitesRetard(): ?string
+    {
+        return $this->tauxPenalitesRetard;
+    }
+
+    public function setTauxPenalitesRetard(string $tauxPenalitesRetard): static
+    {
+        $this->tauxPenalitesRetard = $tauxPenalitesRetard;
+
+        return $this;
+    }
+
+    public function getEscomptePaiementAnticipe(): ?string
+    {
+        return $this->escomptePaiementAnticipe;
+    }
+
+    public function setEscomptePaiementAnticipe(
+        ?string $escomptePaiementAnticipe
+    ): static {
+        $this->escomptePaiementAnticipe = $escomptePaiementAnticipe;
+
+        return $this;
+    }
+
+    public function getIndemniteRecouvrement(): ?string
+    {
+        return $this->indemniteRecouvrement;
+    }
+
+    public function setIndemniteRecouvrement(
+        string $indemniteRecouvrement
+    ): static {
+        $this->indemniteRecouvrement = $indemniteRecouvrement;
+
+        return $this;
+    }
+
+    public function getFormeJuridique(): ?string
+    {
+        return $this->formeJuridique;
+    }
+
+    public function setFormeJuridique(?string $formeJuridique): static
+    {
+        $this->formeJuridique = $formeJuridique;
+
+        return $this;
+    }
+
+    public function getCapitalSocial(): ?string
+    {
+        return $this->capitalSocial;
+    }
+
+    public function setCapitalSocial(?string $capitalSocial): static
+    {
+        $this->capitalSocial = $capitalSocial;
+
+        return $this;
+    }
+
+    public function getRcs(): ?string
+    {
+        return $this->rcs;
+    }
+
+    public function setRcs(?string $rcs): static
+    {
+        $this->rcs = $rcs;
+
+        return $this;
+    }
+
+    public function getVilleRcs(): ?string
+    {
+        return $this->villeRcs;
+    }
+
+    public function setVilleRcs(?string $villeRcs): static
+    {
+        $this->villeRcs = $villeRcs;
+
+        return $this;
+    }
+
+    public function getMentionTva(): ?string
+    {
+        return $this->mentionTva;
+    }
+
+    public function setMentionTva(?string $mentionTva): static
+    {
+        $this->mentionTva = $mentionTva;
+
+        return $this;
     }
 }

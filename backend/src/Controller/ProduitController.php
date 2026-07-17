@@ -2,44 +2,101 @@
 
 namespace App\Controller;
 
-use App\Entity\User;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use App\Entity\Produit;
+use App\Entity\User;
+use App\Repository\ProduitRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class ProduitController extends AbstractController
 {
     #[Route('/api/produits', name: 'api_produits_list', methods: ['GET'])]
     public function index(
-        EntityManagerInterface $entityManager,
+        Request $request,
+        ProduitRepository $produitRepository,
         #[CurrentUser] User $user
     ): JsonResponse {
-        $produits = $entityManager
-            ->getRepository(Produit::class)
-            ->findBy(['user' => $user]);
+        $recherche = trim(
+            (string) $request->query->get('recherche', '')
+        );
+
+        $filtre = strtolower(
+            trim(
+                (string) $request->query->get('filtre', 'tous')
+            )
+        );
+
+        $tri = trim(
+            (string) $request->query->get('tri', 'nom')
+        );
+
+        $ordre = strtoupper(
+            trim(
+                (string) $request->query->get('ordre', 'ASC')
+            )
+        );
+
+        if (!$produitRepository->isFilterAllowed($filtre)) {
+            return $this->json(
+                [
+                    'message' => 'Le filtre demandé est invalide.',
+                    'filtresAutorises' =>
+                    $produitRepository->getAllowedFilters(),
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (!$produitRepository->isSortFieldAllowed($tri)) {
+            return $this->json(
+                [
+                    'message' => 'Le champ de tri demandé est invalide.',
+                    'trisAutorises' =>
+                    $produitRepository->getAllowedSortFields(),
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (!in_array($ordre, ['ASC', 'DESC'], true)) {
+            return $this->json(
+                [
+                    'message' => 'L’ordre doit être ASC ou DESC.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $produits = $produitRepository->findForUserWithFilters(
+            user: $user,
+            recherche: $recherche,
+            filtre: $filtre,
+            tri: $tri,
+            ordre: $ordre
+        );
 
         $data = array_map(
-            static fn(Produit $produit): array => [
-                'id' => $produit->getId(),
-                'nom' => $produit->getNom(),
-                'description' => $produit->getDescription(),
-                'type' => $produit->getType(),
-                'reference' => $produit->getReference(),
-                'prixHT' => $produit->getPrixHT(),
-                'tva' => $produit->getTva(),
-                'unite' => $produit->getUnite(),
-                'actif' => $produit->isActif(),
-                'createdAt' => $produit->getCreatedAt()?->format('Y-m-d H:i:s'),
-                'updatedAt' => $produit->getUpdatedAt()?->format('Y-m-d H:i:s'),
-            ],
+            fn(Produit $produit): array =>
+            $this->transformerProduit($produit),
             $produits
         );
 
-        return $this->json($data);
+        return $this->json([
+            'filtres' => [
+                'recherche' => $recherche !== ''
+                    ? $recherche
+                    : null,
+                'filtre' => $filtre,
+                'tri' => $tri,
+                'ordre' => $ordre,
+            ],
+            'nombreResultats' => count($data),
+            'produits' => $data,
+        ]);
     }
 
     #[Route('/api/produits', name: 'api_produits_create', methods: ['POST'])]
@@ -50,20 +107,67 @@ final class ProduitController extends AbstractController
     ): JsonResponse {
         $data = $request->toArray();
 
+        $nom = trim((string) ($data['nom'] ?? ''));
+        $reference = trim((string) ($data['reference'] ?? ''));
+        $type = strtolower(
+            trim((string) ($data['type'] ?? 'produit'))
+        );
+
+        if ($nom === '') {
+            return $this->json(
+                ['message' => 'Le nom est obligatoire.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if ($reference === '') {
+            return $this->json(
+                ['message' => 'La référence est obligatoire.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (!in_array($type, ['produit', 'service'], true)) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Le type doit être produit ou service.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
         $produit = new Produit();
 
-        $produit->setNom(trim((string) ($data['nom'] ?? '')));
+        $produit->setNom($nom);
+
         $produit->setDescription(
-            isset($data['description']) ? (string) $data['description'] : null
+            isset($data['description'])
+                ? (string) $data['description']
+                : null
         );
-        $produit->setType((string) ($data['type'] ?? 'produit'));
-        $produit->setReference(trim((string) ($data['reference'] ?? '')));
-        $produit->setPrixHT((string) ($data['prixHT'] ?? '0.00'));
-        $produit->setTva((string) ($data['tva'] ?? '20.00'));
+
+        $produit->setType($type);
+        $produit->setReference($reference);
+
+        $produit->setPrixHT(
+            (string) ($data['prixHT'] ?? '0.00')
+        );
+
+        $produit->setTva(
+            (string) ($data['tva'] ?? '20.00')
+        );
+
         $produit->setUnite(
-            isset($data['unite']) ? (string) $data['unite'] : null
+            isset($data['unite'])
+                ? (string) $data['unite']
+                : null
         );
-        $produit->setActif((bool) ($data['actif'] ?? true));
+
+        $produit->setActif(
+            (bool) ($data['actif'] ?? true)
+        );
+
         $produit->setUser($user);
 
         $entityManager->persist($produit);
@@ -72,17 +176,8 @@ final class ProduitController extends AbstractController
         return $this->json(
             [
                 'message' => 'Produit créé avec succès.',
-                'produit' => [
-                    'id' => $produit->getId(),
-                    'nom' => $produit->getNom(),
-                    'description' => $produit->getDescription(),
-                    'type' => $produit->getType(),
-                    'reference' => $produit->getReference(),
-                    'prixHT' => $produit->getPrixHT(),
-                    'tva' => $produit->getTva(),
-                    'unite' => $produit->getUnite(),
-                    'actif' => $produit->isActif(),
-                ],
+                'produit' =>
+                $this->transformerProduit($produit),
             ],
             JsonResponse::HTTP_CREATED
         );
@@ -100,19 +195,9 @@ final class ProduitController extends AbstractController
             );
         }
 
-        return $this->json([
-            'id' => $produit->getId(),
-            'nom' => $produit->getNom(),
-            'description' => $produit->getDescription(),
-            'type' => $produit->getType(),
-            'reference' => $produit->getReference(),
-            'prixHT' => $produit->getPrixHT(),
-            'tva' => $produit->getTva(),
-            'unite' => $produit->getUnite(),
-            'actif' => $produit->isActif(),
-            'createdAt' => $produit->getCreatedAt()?->format('Y-m-d H:i:s'),
-            'updatedAt' => $produit->getUpdatedAt()?->format('Y-m-d H:i:s'),
-        ]);
+        return $this->json(
+            $this->transformerProduit($produit)
+        );
     }
 
     #[Route('/api/produits/{id}', name: 'api_produits_update', methods: ['PUT'])]
@@ -132,53 +217,89 @@ final class ProduitController extends AbstractController
         $data = $request->toArray();
 
         if (array_key_exists('nom', $data)) {
-            $produit->setNom(trim((string) $data['nom']));
+            $nom = trim((string) $data['nom']);
+
+            if ($nom === '') {
+                return $this->json(
+                    ['message' => 'Le nom est obligatoire.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            $produit->setNom($nom);
         }
 
         if (array_key_exists('description', $data)) {
-            $produit->setDescription($data['description']);
+            $produit->setDescription(
+                $data['description'] !== null
+                    ? (string) $data['description']
+                    : null
+            );
         }
 
         if (array_key_exists('type', $data)) {
-            $produit->setType((string) $data['type']);
+            $type = strtolower(
+                trim((string) $data['type'])
+            );
+
+            if (!in_array($type, ['produit', 'service'], true)) {
+                return $this->json(
+                    [
+                        'message' =>
+                        'Le type doit être produit ou service.',
+                    ],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            $produit->setType($type);
         }
 
         if (array_key_exists('reference', $data)) {
-            $produit->setReference(trim((string) $data['reference']));
+            $reference = trim((string) $data['reference']);
+
+            if ($reference === '') {
+                return $this->json(
+                    ['message' => 'La référence est obligatoire.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            $produit->setReference($reference);
         }
 
         if (array_key_exists('prixHT', $data)) {
-            $produit->setPrixHT((string) $data['prixHT']);
+            $produit->setPrixHT(
+                (string) $data['prixHT']
+            );
         }
 
         if (array_key_exists('tva', $data)) {
-            $produit->setTva((string) $data['tva']);
+            $produit->setTva(
+                (string) $data['tva']
+            );
         }
 
         if (array_key_exists('unite', $data)) {
-            $produit->setUnite($data['unite']);
+            $produit->setUnite(
+                $data['unite'] !== null
+                    ? (string) $data['unite']
+                    : null
+            );
         }
 
         if (array_key_exists('actif', $data)) {
-            $produit->setActif((bool) $data['actif']);
+            $produit->setActif(
+                (bool) $data['actif']
+            );
         }
 
         $entityManager->flush();
 
         return $this->json([
             'message' => 'Produit modifié avec succès.',
-            'produit' => [
-                'id' => $produit->getId(),
-                'nom' => $produit->getNom(),
-                'description' => $produit->getDescription(),
-                'type' => $produit->getType(),
-                'reference' => $produit->getReference(),
-                'prixHT' => $produit->getPrixHT(),
-                'tva' => $produit->getTva(),
-                'unite' => $produit->getUnite(),
-                'actif' => $produit->isActif(),
-                'updatedAt' => $produit->getUpdatedAt()?->format('Y-m-d H:i:s'),
-            ],
+            'produit' =>
+            $this->transformerProduit($produit),
         ]);
     }
 
@@ -199,7 +320,29 @@ final class ProduitController extends AbstractController
         $entityManager->flush();
 
         return $this->json([
-            'message' => 'Produit supprimé avec succès.'
+            'message' => 'Produit supprimé avec succès.',
         ]);
+    }
+
+    private function transformerProduit(
+        Produit $produit
+    ): array {
+        return [
+            'id' => $produit->getId(),
+            'nom' => $produit->getNom(),
+            'description' => $produit->getDescription(),
+            'type' => $produit->getType(),
+            'reference' => $produit->getReference(),
+            'prixHT' => $produit->getPrixHT(),
+            'tva' => $produit->getTva(),
+            'unite' => $produit->getUnite(),
+            'actif' => $produit->isActif(),
+            'createdAt' => $produit
+                ->getCreatedAt()
+                ?->format(DATE_ATOM),
+            'updatedAt' => $produit
+                ->getUpdatedAt()
+                ?->format(DATE_ATOM),
+        ];
     }
 }

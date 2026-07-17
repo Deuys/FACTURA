@@ -9,6 +9,10 @@ use App\Enum\StatutFacture;
 use App\Service\NumerotationService;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\FacturePdfService;
+use App\Service\FactureMailerService;
+use App\Repository\FactureRepository;
+use App\Entity\LigneFacture;
+use App\Service\ActiviteService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,42 +25,142 @@ final class FactureController extends AbstractController
     #[Route('/api/factures', name: 'api_factures_list', methods: ['GET'])]
     public function index(
         Request $request,
-        EntityManagerInterface $entityManager,
+        FactureRepository $factureRepository,
         #[CurrentUser] User $user
     ): JsonResponse {
         $statut = null;
 
-        if ($request->query->has('statut')) {
-            $statut = StatutFacture::tryFrom(
-                (string) $request->query->get('statut')
-            );
+        $statutParametre = trim(
+            (string) $request->query->get('statut', '')
+        );
+
+        if ($statutParametre !== '') {
+            $statut = StatutFacture::tryFrom($statutParametre);
 
             if ($statut === null) {
                 return $this->json(
-                    ['message' => 'Le statut demandé est invalide.'],
+                    [
+                        'message' => 'Le statut demandé est invalide.',
+                        'statutsAutorises' => array_map(
+                            static fn(StatutFacture $statut): string =>
+                            $statut->value,
+                            StatutFacture::cases()
+                        ),
+                    ],
                     JsonResponse::HTTP_BAD_REQUEST
                 );
             }
         }
 
-        $ordre = strtoupper(
-            (string) $request->query->get('sort', 'DESC')
+        $recherche = trim(
+            (string) $request->query->get('recherche', '')
         );
 
-        $factures = $entityManager
-            ->getRepository(Facture::class)
-            ->findForUserWithFilters(
-                $user,
-                $statut,
-                $ordre
+        $tri = trim(
+            (string) $request->query->get(
+                'tri',
+                'dateEmission'
+            )
+        );
+
+        $ordre = strtoupper(
+            trim(
+                (string) $request->query->get(
+                    'ordre',
+                    'DESC'
+                )
+            )
+        );
+
+        $archiveeParametre = strtolower(
+            trim(
+                (string) $request->query->get(
+                    'archivee',
+                    'false'
+                )
+            )
+        );
+
+        if (
+            !in_array(
+                $archiveeParametre,
+                [
+                    '',
+                    'true',
+                    'false',
+                    '1',
+                    '0',
+                    'toutes',
+                ],
+                true
+            )
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Le filtre archivee doit être true, false, 1, 0 ou toutes.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
             );
+        }
+
+        $archivee = match ($archiveeParametre) {
+            'true', '1' => true,
+            'toutes' => null,
+            default => false,
+        };
+
+        if (!$factureRepository->isSortFieldAllowed($tri)) {
+            return $this->json(
+                [
+                    'message' => 'Le champ de tri demandé est invalide.',
+                    'trisAutorises' =>
+                    $factureRepository->getAllowedSortFields(),
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if (!in_array($ordre, ['ASC', 'DESC'], true)) {
+            return $this->json(
+                [
+                    'message' =>
+                    'L’ordre doit être ASC ou DESC.',
+                ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $factures = $factureRepository->findForUserWithFilters(
+            user: $user,
+            statut: $statut,
+            recherche: $recherche,
+            tri: $tri,
+            ordre: $ordre,
+            archivee: $archivee
+        );
 
         $data = array_map(
-            fn(Facture $facture): array => $this->transformerFacture($facture),
+            fn(Facture $facture): array =>
+            $this->transformerFacture($facture),
             $factures
         );
 
-        return $this->json($data);
+        return $this->json([
+            'filtres' => [
+                'recherche' => $recherche !== ''
+                    ? $recherche
+                    : null,
+                'statut' => $statut?->value,
+                'tri' => $tri,
+                'ordre' => $ordre,
+                'archivee' => $archiveeParametre === 'toutes'
+                    ? 'toutes'
+                    : $archivee,
+            ],
+            'nombreResultats' => count($data),
+            'factures' => $data,
+        ]);
     }
 
     #[Route('/api/factures', name: 'api_factures_create', methods: ['POST'])]
@@ -247,6 +351,204 @@ final class FactureController extends AbstractController
         );
     }
 
+    #[Route('/api/factures/{id}/envoyer', name: 'api_factures_send', methods: ['POST'])]
+    public function send(
+        Facture $facture,
+        FactureMailerService $factureMailerService,
+        EntityManagerInterface $entityManager,
+        ActiviteService $activiteService,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($facture->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé à cette facture.'],
+                JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+
+        $clientEmail = trim((string) $facture->getClient()?->getEmail());
+
+        if ($clientEmail === '') {
+            return $this->json(
+                ['message' => 'Le client ne possède aucune adresse e-mail.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $ancienStatut = $facture->getStatut();
+
+        /*
+     * Le statut est modifié avant la génération du PDF.
+     * Le PDF joint affichera donc bien « Envoyée ».
+     */
+        $facture->setStatut(StatutFacture::ENVOYEE);
+
+        try {
+            $factureMailerService->send($facture);
+
+            $activiteService->enregistrer(
+                user: $user,
+                type: 'facture_envoyee',
+                titre: 'Facture envoyée',
+                description: sprintf(
+                    '%s • %s',
+                    $facture->getNumero(),
+                    $facture->getClient()?->getEntreprise()
+                        ?: trim(
+                            sprintf(
+                                '%s %s',
+                                $facture->getClient()?->getPrenom() ?? '',
+                                $facture->getClient()?->getNom() ?? ''
+                            )
+                        )
+                )
+            );
+
+            $entityManager->flush();
+        } catch (\InvalidArgumentException $exception) {
+            $facture->setStatut($ancienStatut);
+
+            return $this->json(
+                ['message' => $exception->getMessage()],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        } catch (\Throwable) {
+            $facture->setStatut($ancienStatut);
+
+            return $this->json(
+                [
+                    'message' =>
+                    'Une erreur est survenue pendant l’envoi de la facture.',
+                ],
+                JsonResponse::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+
+        return $this->json([
+            'message' => 'Facture mise en file d’envoi avec succès.',
+            'facture' => $this->transformerFacture($facture),
+        ]);
+    }
+
+    #[Route(
+        '/api/factures/{id}/dupliquer',
+        name: 'api_factures_duplicate',
+        methods: ['POST']
+    )]
+    public function duplicate(
+        Facture $facture,
+        EntityManagerInterface $entityManager,
+        NumerotationService $numerotationService,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($facture->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé à cette facture.'],
+                JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+
+        $dateEmission = new \DateTimeImmutable();
+        $dateEcheance = $dateEmission->modify('+30 days');
+
+        $nouvelleFacture = new Facture();
+
+        $nouvelleFacture->setNumero(
+            $numerotationService->genererNumeroFacture($user)
+        );
+
+        $nouvelleFacture->setDateEmission($dateEmission);
+        $nouvelleFacture->setDateEmissionPrevue(null);
+        $nouvelleFacture->setDateEcheance($dateEcheance);
+        $nouvelleFacture->setStatut(StatutFacture::BROUILLON);
+
+        $nouvelleFacture->setTotalHT(
+            $facture->getTotalHT() ?? '0.00'
+        );
+
+        $nouvelleFacture->setTotalTVA(
+            $facture->getTotalTVA() ?? '0.00'
+        );
+
+        $nouvelleFacture->setTotalTTC(
+            $facture->getTotalTTC() ?? '0.00'
+        );
+
+        $nouvelleFacture->setCommentaire(
+            $facture->getCommentaire()
+        );
+
+        $nouvelleFacture->setClient(
+            $facture->getClient()
+        );
+
+        $nouvelleFacture->setUser($user);
+
+        foreach ($facture->getLigneFactures() as $ligneFacture) {
+            $nouvelleLigne = new LigneFacture();
+
+            $nouvelleLigne->setProduit(
+                $ligneFacture->getProduit()
+            );
+
+            $nouvelleLigne->setDesignation(
+                $ligneFacture->getDesignation() ?? ''
+            );
+
+            $nouvelleLigne->setDescription(
+                $ligneFacture->getDescription()
+            );
+
+            $nouvelleLigne->setUnite(
+                $ligneFacture->getUnite()
+            );
+
+            $nouvelleLigne->setQuantite(
+                $ligneFacture->getQuantite() ?? '1.00'
+            );
+
+            $nouvelleLigne->setPrixUnitaireHT(
+                $ligneFacture->getPrixUnitaireHT() ?? '0.00'
+            );
+
+            $nouvelleLigne->setTva(
+                $ligneFacture->getTva() ?? '20.00'
+            );
+
+            $nouvelleLigne->setRemise(
+                $ligneFacture->getRemise()
+            );
+
+            $nouvelleLigne->setTotalHT(
+                $ligneFacture->getTotalHT() ?? '0.00'
+            );
+
+            $nouvelleLigne->setTotalTVA(
+                $ligneFacture->getTotalTVA() ?? '0.00'
+            );
+
+            $nouvelleLigne->setTotalTTC(
+                $ligneFacture->getTotalTTC() ?? '0.00'
+            );
+
+            $nouvelleFacture->addLigneFacture(
+                $nouvelleLigne
+            );
+        }
+
+        $entityManager->persist($nouvelleFacture);
+        $entityManager->flush();
+
+        return $this->json(
+            [
+                'message' => 'Facture dupliquée avec succès.',
+                'id' => $nouvelleFacture->getId(),
+                'numero' => $nouvelleFacture->getNumero(),
+            ],
+            JsonResponse::HTTP_CREATED
+        );
+    }
+
     #[Route('/api/factures/{id}', name: 'api_factures_update', methods: ['PUT'])]
     public function update(
         Facture $facture,
@@ -258,6 +560,24 @@ final class FactureController extends AbstractController
             return $this->json(
                 ['message' => 'Accès refusé à cette facture.'],
                 JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+        if (
+            !in_array(
+                $facture->getStatut(),
+                [
+                    StatutFacture::BROUILLON,
+                    StatutFacture::PLANIFIEE,
+                ],
+                true
+            )
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Cette facture est verrouillée et ne peut plus être modifiée.',
+                ],
+                JsonResponse::HTTP_CONFLICT
             );
         }
 
@@ -397,6 +717,24 @@ final class FactureController extends AbstractController
                 JsonResponse::HTTP_FORBIDDEN
             );
         }
+        if (
+            !in_array(
+                $facture->getStatut(),
+                [
+                    StatutFacture::BROUILLON,
+                    StatutFacture::PLANIFIEE,
+                ],
+                true
+            )
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Cette facture est verrouillée et ne peut plus être supprimée.',
+                ],
+                JsonResponse::HTTP_CONFLICT
+            );
+        }
 
         $entityManager->remove($facture);
         $entityManager->flush();
@@ -421,6 +759,7 @@ final class FactureController extends AbstractController
                 ->getDateEcheance()
                 ?->format('Y-m-d'),
             'statut' => $facture->getStatut()->value,
+            'archivee' => $facture->isArchivee(),
             'totalHT' => $facture->getTotalHT(),
             'totalTVA' => $facture->getTotalTVA(),
             'totalTTC' => $facture->getTotalTTC(),
@@ -438,5 +777,79 @@ final class FactureController extends AbstractController
                 ->getUpdatedAt()
                 ?->format(DATE_ATOM),
         ];
+    }
+
+    #[Route(
+        '/api/factures/{id}/archiver',
+        name: 'api_factures_archive',
+        methods: ['POST']
+    )]
+    public function archive(
+        Facture $facture,
+        EntityManagerInterface $entityManager,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($facture->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé à cette facture.'],
+                JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+
+        if ($facture->isArchivee()) {
+            return $this->json(
+                ['message' => 'Cette facture est déjà archivée.'],
+                JsonResponse::HTTP_CONFLICT
+            );
+        }
+
+        $facture->setArchivee(true);
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Facture archivée avec succès.',
+            'facture' => [
+                'id' => $facture->getId(),
+                'numero' => $facture->getNumero(),
+                'archivee' => $facture->isArchivee(),
+            ],
+        ]);
+    }
+
+    #[Route(
+        '/api/factures/{id}/restaurer',
+        name: 'api_factures_restore',
+        methods: ['POST']
+    )]
+    public function restore(
+        Facture $facture,
+        EntityManagerInterface $entityManager,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($facture->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé à cette facture.'],
+                JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+
+        if (!$facture->isArchivee()) {
+            return $this->json(
+                ['message' => 'Cette facture n’est pas archivée.'],
+                JsonResponse::HTTP_CONFLICT
+            );
+        }
+
+        $facture->setArchivee(false);
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Facture restaurée avec succès.',
+            'facture' => [
+                'id' => $facture->getId(),
+                'numero' => $facture->getNumero(),
+                'archivee' => $facture->isArchivee(),
+            ],
+        ]);
     }
 }

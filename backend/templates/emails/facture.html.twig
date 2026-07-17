@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Votre facture {{ facture.numero }}</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #F8FAFC; font-family: Inter, Arial, sans-serif; color: #111827;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #F8FAFC; padding: 30px 15px;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 620px; background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <tr>
+                    <td style="padding: 28px 32px; border-bottom: 1px solid #E5E7EB;">
+                        <div style="font-size: 20px; font-weight: 700; color: #2563EB;">
+                            FACTURA
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 32px;">
+                        <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.6;">
+                            Bonjour
+                            {% if client.prenom %}
+                                {{ client.prenom }}
+                            {% endif %},
+                        </p>
+
+                        <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.7; color: #555555;">
+                            Votre facture
+                            <strong style="color: #111827;">
+                                {{ facture.numero }}
+                            </strong>
+                            est disponible.
+                        </p>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; border-collapse: collapse;">
+                            <tr>
+                                <td style="padding: 14px 16px; background-color: #EFF6FF; border: 1px solid #E5E7EB; font-size: 14px;">
+                                    Date d’émission
+                                </td>
+
+                                <td align="right" style="padding: 14px 16px; background-color: #EFF6FF; border: 1px solid #E5E7EB; font-size: 14px; font-weight: 600;">
+                                    {{ facture.dateEmission|date('d/m/Y') }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="padding: 14px 16px; border: 1px solid #E5E7EB; font-size: 14px;">
+                                    Date d’échéance
+                                </td>
+
+                                <td align="right" style="padding: 14px 16px; border: 1px solid #E5E7EB; font-size: 14px; font-weight: 600;">
+                                    {{ facture.dateEcheance|date('d/m/Y') }}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td style="padding: 14px 16px; border: 1px solid #E5E7EB; font-size: 14px;">
+                                    Montant TTC
+                                </td>
+
+                                <td align="right" style="padding: 14px 16px; border: 1px solid #E5E7EB; font-size: 18px; font-weight: 700; color: #2563EB;">
+                                    {{ facture.totalTTC|number_format(2, ',', ' ') }} €
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.7; color: #555555;">
+                            Le document PDF est joint à cet e-mail.
+                        </p>
+
+                        <p style="margin: 0 0 8px; font-size: 15px; line-height: 1.7; color: #555555;">
+                            Merci pour votre confiance.
+                        </p>
+
+                        <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #111827; font-weight: 600;">
+                            L’équipe FACTURA
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 20px 32px; background-color: #F8FAFC; border-top: 1px solid #E5E7EB; border-radius: 0 0 12px 12px;">
+                        <p style="margin: 0; text-align: center; font-size: 12px; line-height: 1.5; color: #555555;">
+                            Cet e-mail a été envoyé automatiquement par FACTURA.
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>
