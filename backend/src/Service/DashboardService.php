@@ -74,7 +74,9 @@ final class DashboardService
             ->select('COALESCE(SUM(p.montant), 0)')
             ->innerJoin('p.facture', 'f')
             ->andWhere('f.user = :user')
+            ->andWhere('p.statut = :statut')
             ->setParameter('user', $user)
+            ->setParameter('statut', StatutPaiement::CONFIRME)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -101,8 +103,13 @@ final class DashboardService
             ->innerJoin('p.facture', 'f')
             ->andWhere('f.user = :user')
             ->andWhere('f.statut IN (:statuts)')
+            ->andWhere('p.statut = :statutPaiement')
             ->setParameter('user', $user)
             ->setParameter('statuts', $statutsAEncaisser)
+            ->setParameter(
+                'statutPaiement',
+                StatutPaiement::CONFIRME
+            )
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -310,7 +317,7 @@ final class DashboardService
             ->andWhere('f.user = :user')
             ->andWhere('p.statut = :statut')
             ->setParameter('user', $user)
-            ->setParameter('statut', StatutPaiement::VALIDE)
+            ->setParameter('statut', StatutPaiement::CONFIRME)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -345,7 +352,7 @@ final class DashboardService
             ->andWhere('f.user = :user')
             ->andWhere('p.statut = :statut')
             ->setParameter('user', $user)
-            ->setParameter('statut', StatutPaiement::VALIDE)
+            ->setParameter('statut', StatutPaiement::CONFIRME)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -404,7 +411,7 @@ final class DashboardService
             ->andWhere('f.user = :user')
             ->andWhere('p.statut = :statut')
             ->setParameter('user', $user)
-            ->setParameter('statut', StatutPaiement::VALIDE)
+            ->setParameter('statut', StatutPaiement::CONFIRME)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -483,6 +490,13 @@ final class DashboardService
     {
         $aujourdhui = new \DateTimeImmutable('today');
 
+        $statutsAEcheance = [
+            StatutFacture::PLANIFIEE,
+            StatutFacture::EN_ATTENTE,
+            StatutFacture::ENVOYEE,
+            StatutFacture::PARTIELLEMENT_PAYEE,
+        ];
+
         $factures = $this->entityManager
             ->getRepository(Facture::class)
             ->createQueryBuilder('f')
@@ -490,10 +504,10 @@ final class DashboardService
             ->addSelect('c')
             ->andWhere('f.user = :user')
             ->andWhere('f.dateEcheance >= :aujourdhui')
-            ->andWhere('f.statut != :statutPayee')
+            ->andWhere('f.statut IN (:statuts)')
             ->setParameter('user', $user)
             ->setParameter('aujourdhui', $aujourdhui)
-            ->setParameter('statutPayee', StatutFacture::PAYEE)
+            ->setParameter('statuts', $statutsAEcheance)
             ->orderBy('f.dateEcheance', 'ASC')
             ->setMaxResults(5)
             ->getQuery()
@@ -541,7 +555,7 @@ final class DashboardService
             ->andWhere('p.datePaiement >= :debutAnnee')
             ->andWhere('p.datePaiement < :debutAnneeSuivante')
             ->setParameter('user', $user)
-            ->setParameter('statut', StatutPaiement::VALIDE)
+            ->setParameter('statut', StatutPaiement::CONFIRME)
             ->setParameter('debutAnnee', $debutAnnee)
             ->setParameter('debutAnneeSuivante', $debutAnneeSuivante)
             ->getQuery()
