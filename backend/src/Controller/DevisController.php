@@ -12,6 +12,10 @@ use App\Entity\User;
 use App\Enum\StatutDevis;
 use App\Service\NumerotationService;
 use App\Service\ActiviteService;
+use App\Service\NotificationService;
+use App\Service\DevisPdfService;
+use App\Service\DevisMailerService;
+use Symfony\Component\HttpFoundation\Response;
 use App\Repository\DevisRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -127,6 +131,7 @@ final class DevisController extends AbstractController
         EntityManagerInterface $entityManager,
         NumerotationService $numerotationService,
         ActiviteService $activiteService,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -176,6 +181,17 @@ final class DevisController extends AbstractController
                     )
             )
         );
+        $notificationService->creer(
+            user: $user,
+            type: 'devis_cree',
+            titre: 'Nouveau devis créé',
+            message: sprintf(
+                'Le devis %s a été créé.',
+                $devis->getNumero()
+            ),
+            url: null
+        );
+
 
         $entityManager->flush();
 
@@ -222,11 +238,38 @@ final class DevisController extends AbstractController
         ]);
     }
 
+    #[Route('/api/devis/{id}/pdf', name: 'api_devis_pdf', methods: ['GET'])]
+    public function pdf(
+        Devis $devis,
+        DevisPdfService $devisPdfService,
+        #[CurrentUser] User $user
+    ): Response {
+        if ($devis->getUser() !== $user) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $pdf = $devisPdfService->generate($devis);
+
+        return new Response(
+            $pdf,
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf(
+                    'inline; filename="%s"',
+                    $devisPdfService->generateFilename($devis)
+                ),
+            ]
+        );
+    }
+
     #[Route('/api/devis/{id}', name: 'api_devis_update', methods: ['PUT'])]
     public function update(
         Devis $devis,
         Request $request,
         EntityManagerInterface $entityManager,
+        ActiviteService $activiteService,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($devis->getUser() !== $user) {
@@ -264,6 +307,7 @@ final class DevisController extends AbstractController
                 new \DateTimeImmutable((string) $data['dateValidite'])
             );
         }
+        $ancienStatut = $devis->getStatut();
 
         if (array_key_exists('statut', $data)) {
             $statut = StatutDevis::tryFrom((string) $data['statut']);
@@ -276,6 +320,70 @@ final class DevisController extends AbstractController
             }
 
             $devis->setStatut($statut);
+
+            if (
+                $ancienStatut !== $statut &&
+                $statut === StatutDevis::ACCEPTE
+            ) {
+                $activiteService->enregistrer(
+                    user: $user,
+                    type: 'devis_accepte',
+                    titre: 'Devis accepté',
+                    description: sprintf(
+                        '%s • %s',
+                        $devis->getNumero(),
+                        $devis->getClient()?->getEntreprise()
+                            ?: trim(sprintf(
+                                '%s %s',
+                                $devis->getClient()?->getPrenom() ?? '',
+                                $devis->getClient()?->getNom() ?? ''
+                            ))
+                    )
+                );
+
+                $notificationService->creer(
+                    user: $user,
+                    type: 'devis_accepte',
+                    titre: 'Devis accepté',
+                    message: sprintf(
+                        'Le devis %s a été accepté.',
+                        $devis->getNumero()
+                    ),
+                    url: null
+                );
+            }
+
+            if (
+                $ancienStatut !== $statut &&
+                $statut === StatutDevis::REFUSE
+            ) {
+                $activiteService->enregistrer(
+                    user: $user,
+                    type: 'devis_refuse',
+                    titre: 'Devis refusé',
+                    description: sprintf(
+                        '%s • %s',
+                        $devis->getNumero(),
+                        $devis->getClient()?->getEntreprise()
+                            ?: trim(sprintf(
+                                '%s %s',
+                                $devis->getClient()?->getPrenom() ?? '',
+                                $devis->getClient()?->getNom() ?? ''
+                            ))
+                    )
+                );
+
+                $notificationService->creer(
+                    user: $user,
+                    type: 'devis_refuse',
+                    titre: 'Devis refusé',
+                    message: sprintf(
+                        'Le devis %s a été refusé.',
+                        $devis->getNumero()
+                    ),
+                    url: null
+                );
+            }
         }
 
         if (array_key_exists('commentaire', $data)) {
@@ -447,6 +555,64 @@ final class DevisController extends AbstractController
             ],
             JsonResponse::HTTP_CREATED
         );
+    }
+
+    #[Route(
+        '/api/devis/{id}/envoyer',
+        name: 'api_devis_envoyer',
+        methods: ['POST']
+    )]
+    public function envoyer(
+        Devis $devis,
+        DevisMailerService $devisMailerService,
+        EntityManagerInterface $entityManager,
+        ActiviteService $activiteService,
+        NotificationService $notificationService,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($devis->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Accès refusé.'],
+                JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+
+        $devisMailerService->send($devis);
+
+        $devis->setStatut(StatutDevis::ENVOYE);
+
+        $activiteService->enregistrer(
+            user: $user,
+            type: 'devis_envoye',
+            titre: 'Devis envoyé',
+            description: sprintf(
+                '%s • %s',
+                $devis->getNumero(),
+                $devis->getClient()?->getEntreprise()
+                    ?: trim(sprintf(
+                        '%s %s',
+                        $devis->getClient()?->getPrenom() ?? '',
+                        $devis->getClient()?->getNom() ?? ''
+                    ))
+            )
+        );
+
+        $notificationService->creer(
+            user: $user,
+            type: 'devis_envoye',
+            titre: 'Devis envoyé',
+            message: sprintf(
+                'Le devis %s a été envoyé.',
+                $devis->getNumero()
+            ),
+            url: null
+        );
+
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Devis envoyé avec succès.'
+        ]);
     }
 
     #[Route('/api/devis/{id}', name: 'api_devis_delete', methods: ['DELETE'])]

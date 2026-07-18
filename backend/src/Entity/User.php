@@ -68,6 +68,16 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     )]
     private Collection $activites;
 
+    /**
+     * @var Collection<int, Notification>
+     */
+    #[ORM\OneToMany(
+        targetEntity: Notification::class,
+        mappedBy: 'user',
+        orphanRemoval: true
+    )]
+    private Collection $notifications;
+
     #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
     private ?Entreprise $entreprise = null;
 
@@ -78,6 +88,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->factures = new ArrayCollection();
         $this->devis = new ArrayCollection();
         $this->activites = new ArrayCollection();
+        $this->notifications = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -298,6 +309,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if ($this->activites->removeElement($activite)) {
             if ($activite->getUser() === $this) {
                 $activite->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Notification>
+     */
+    public function getNotifications(): Collection
+    {
+        return $this->notifications;
+    }
+
+    public function addNotification(Notification $notification): static
+    {
+        if (!$this->notifications->contains($notification)) {
+            $this->notifications->add($notification);
+            $notification->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeNotification(Notification $notification): static
+    {
+        if ($this->notifications->removeElement($notification)) {
+            if ($notification->getUser() === $this) {
+                $notification->setUser(null);
             }
         }
 

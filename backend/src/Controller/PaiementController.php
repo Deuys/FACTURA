@@ -6,11 +6,13 @@ use App\Entity\Facture;
 use App\Entity\Paiement;
 use App\Entity\User;
 use App\Enum\ModePaiement;
+use App\Enum\OriginePaiement;
 use App\Enum\StatutFacture;
 use App\Enum\StatutPaiement;
 use App\Repository\PaiementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\ActiviteService;
+use App\Service\NotificationService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -159,6 +161,7 @@ final class PaiementController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         ActiviteService $activiteService,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -248,6 +251,8 @@ final class PaiementController extends AbstractController
         );
         $paiement->setDatePaiement($datePaiement);
         $paiement->setModePaiement($modePaiement);
+        $paiement->setOrigine(OriginePaiement::MANUEL);
+        $paiement->setStatut(StatutPaiement::CONFIRME);
         $paiement->setReference(
             isset($data['reference'])
                 ? trim((string) $data['reference'])
@@ -261,7 +266,43 @@ final class PaiementController extends AbstractController
 
         $entityManager->persist($paiement);
 
+        $ancienStatutFacture = $facture->getStatut();
+
         $this->mettreAJourStatutFacture($facture);
+
+        $nouveauStatutFacture = $facture->getStatut();
+
+        if (
+            $ancienStatutFacture !== $nouveauStatutFacture
+            && $nouveauStatutFacture === StatutFacture::PARTIELLEMENT_PAYEE
+        ) {
+            $notificationService->creer(
+                user: $user,
+                type: 'facture_partiellement_payee',
+                titre: 'Facture partiellement payée',
+                message: sprintf(
+                    'La facture %s a été partiellement payée.',
+                    $facture->getNumero()
+                ),
+                url: null
+            );
+        }
+
+        if (
+            $ancienStatutFacture !== $nouveauStatutFacture
+            && $nouveauStatutFacture === StatutFacture::PAYEE
+        ) {
+            $notificationService->creer(
+                user: $user,
+                type: 'facture_payee',
+                titre: 'Facture payée',
+                message: sprintf(
+                    'La facture %s a été entièrement payée.',
+                    $facture->getNumero()
+                ),
+                url: null
+            );
+        }
 
         $activiteService->enregistrer(
             user: $user,
@@ -279,6 +320,17 @@ final class PaiementController extends AbstractController
                         )
                     )
             )
+        );
+
+        $notificationService->creer(
+            user: $user,
+            type: 'paiement_recu',
+            titre: 'Paiement reçu',
+            message: sprintf(
+                'Paiement reçu pour la facture %s.',
+                $facture->getNumero()
+            ),
+            url: null
         );
 
         $entityManager->flush();
@@ -492,6 +544,11 @@ final class PaiementController extends AbstractController
                 continue;
             }
 
+            // On ne compte que les paiements confirmés
+            if ($paiement->getStatut() !== StatutPaiement::CONFIRME) {
+                continue;
+            }
+
             $totalPaye += (float) ($paiement->getMontant() ?? '0.00');
         }
 
@@ -560,6 +617,8 @@ final class PaiementController extends AbstractController
             $paiement->getModePaiement()->value,
             'statut' =>
             $paiement->getStatut()->value,
+            'origine' => $paiement->getOrigine()->value,
+            'externalPaymentId' => $paiement->getExternalPaymentId(),
             'reference' => $paiement->getReference(),
             'commentaire' => $paiement->getCommentaire(),
             'facture' => [

@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use App\Entity\User;
 use App\Service\ActiviteService;
+use App\Service\NotificationService;
 use App\Repository\ClientRepository;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -103,6 +104,7 @@ final class ClientController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         ActiviteService $activiteService,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -125,19 +127,34 @@ final class ClientController extends AbstractController
 
         $entityManager->persist($client);
 
+        $nomClient = $client->getEntreprise()
+            ?: trim(
+                sprintf(
+                    '%s %s',
+                    $client->getPrenom() ?? '',
+                    $client->getNom() ?? ''
+                )
+            );
+
         $activiteService->enregistrer(
             user: $user,
             type: 'client_ajoute',
             titre: 'Nouveau client ajouté',
-            description: $client->getEntreprise()
-                ?: trim(
-                    sprintf(
-                        '%s %s',
-                        $client->getPrenom() ?? '',
-                        $client->getNom() ?? ''
-                    )
-                )
+            description: $nomClient
         );
+
+        $notificationService->creer(
+            user: $user,
+            type: 'client_cree',
+            titre: 'Nouveau client créé',
+            message: sprintf(
+                'Le client %s a été créé.',
+                $nomClient
+            ),
+            url: null
+        );
+
+        $entityManager->flush();
 
         $entityManager->flush();
 

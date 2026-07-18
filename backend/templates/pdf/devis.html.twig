@@ -246,7 +246,7 @@
 </head>
 
 <body>
-{% set entreprise = facture.user.entreprise %}
+{% set entreprise = devis.user.entreprise %}
 
 <table class="header-table">
     <tr>
@@ -293,10 +293,10 @@
         </td>
 
         <td class="document-title">
-            <h1>FACTURE</h1>
+            <h1>DEVIS</h1>
 
             <div class="document-number">
-                {{ facture.numero }}
+                {{ devis.numero }}
             </div>
         </td>
     </tr>
@@ -305,32 +305,32 @@
 <table class="info-table">
     <tr>
         <td>
-            <div class="section-title">CLIENT</div>
+            <div class="section-title">DESTINATAIRE</div>
 
             <div>
-                {{ facture.client.prenom }}
-                {{ facture.client.nom }}
+                {{ devis.client.prenom }}
+                {{ devis.client.nom }}
             </div>
 
-            {% if facture.client.entreprise %}
-                <div>{{ facture.client.entreprise }}</div>
+            {% if devis.client.entreprise %}
+                <div>{{ devis.client.entreprise }}</div>
             {% endif %}
 
-            {% if facture.client.email %}
-                <div>{{ facture.client.email }}</div>
+            {% if devis.client.email %}
+                <div>{{ devis.client.email }}</div>
             {% endif %}
 
-            {% if facture.client.adresse %}
-                <div>{{ facture.client.adresse }}</div>
+            {% if devis.client.adresse %}
+                <div>{{ devis.client.adresse }}</div>
             {% endif %}
 
             <div>
-                {{ facture.client.codePostal }}
-                {{ facture.client.ville }}
+                {{ devis.client.codePostal }}
+                {{ devis.client.ville }}
             </div>
 
-            {% if facture.client.pays %}
-                <div>{{ facture.client.pays }}</div>
+            {% if devis.client.pays %}
+                <div>{{ devis.client.pays }}</div>
             {% endif %}
         </td>
 
@@ -339,17 +339,17 @@
 
             <div class="info-line">
                 Date d’émission :
-                {{ facture.dateEmission|date('d/m/Y') }}
+                {{ devis.dateEmission|date('d/m/Y') }}
             </div>
 
             <div class="info-line">
-                Date d’échéance :
-                {{ facture.dateEcheance|date('d/m/Y') }}
+                Date de validité :
+                {{ devis.dateValidite|date('d/m/Y') }}
             </div>
 
             <div class="info-line">
                 Référence :
-                {{ facture.numero }}
+                {{ devis.numero }}
             </div>
         </td>
     </tr>
@@ -368,7 +368,7 @@
     </thead>
 
     <tbody>
-    {% for ligne in facture.ligneFactures %}
+    {% for ligne in devis.ligneDevis %}
         <tr>
             <td>
                 <strong>{{ ligne.designation }}</strong>
@@ -413,7 +413,7 @@
     {% else %}
         <tr>
             <td colspan="6">
-                Aucune ligne de facture.
+                Aucune ligne de devis.
             </td>
         </tr>
     {% endfor %}
@@ -425,7 +425,7 @@
         <tr>
             <td>Total HT</td>
             <td class="text-right">
-                {{ facture.totalHT|number_format(2, ',', ' ') }} €
+                {{ devis.totalHT|number_format(2, ',', ' ') }} €
             </td>
         </tr>
 
@@ -437,14 +437,14 @@
                 {% endif %}
             </td>
             <td class="text-right">
-                {{ facture.totalTVA|number_format(2, ',', ' ') }} €
+                {{ devis.totalTVA|number_format(2, ',', ' ') }} €
             </td>
         </tr>
 
         <tr class="total-ttc">
             <td>TOTAL TTC</td>
             <td class="text-right">
-                {{ facture.totalTTC|number_format(2, ',', ' ') }} €
+                {{ devis.totalTTC|number_format(2, ',', ' ') }} €
             </td>
         </tr>
     </table>
@@ -452,71 +452,47 @@
 
 {% if entreprise %}
     <div class="payment-wrapper">
-        <div class="section-title">Règlement</div>
+        <div class="section-title">Conditions du devis</div>
 
         <table class="payment-table">
             <tr>
                 <td>
+                    <div class="payment-label">Validité du devis</div>
+                    <div class="payment-value">
+                        Jusqu’au {{ devis.dateValidite|date('d/m/Y') }}
+                    </div>
+                </td>
+
+                <td>
+                    <div class="payment-label">Référence</div>
+                    <div class="payment-value">
+                        {{ devis.numero }}
+                    </div>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="2">
                     <div class="payment-label">Conditions de règlement</div>
                     <div class="payment-value">
                         {% if entreprise.conditionsReglement %}
                             {{ entreprise.conditionsReglement|nl2br }}
                         {% else %}
-                            Paiement à {{ entreprise.delaiPaiement }} jours
+                            Paiement à {{ entreprise.delaiPaiement }} jours après facturation
                         {% endif %}
-                    </div>
-                </td>
-
-                <td>
-                    <div class="payment-label">Date limite de paiement</div>
-                    <div class="payment-value">
-                        {{ facture.dateEcheance|date('d/m/Y') }}
-                    </div>
-                </td>
-            </tr>
-
-            <tr>
-                <td>
-                    <div class="payment-label">Mode de paiement</div>
-                    <div class="payment-value">
-                        {{ entreprise.modePaiementDefaut.value }}
-                    </div>
-                </td>
-
-                <td>
-                    <div class="payment-label">Référence à rappeler</div>
-                    <div class="payment-value">
-                        {{ facture.numero }}
                     </div>
                 </td>
             </tr>
         </table>
-
-        {% if entreprise.iban or entreprise.bic %}
-            <div class="bank-details">
-                {% if entreprise.iban %}
-                    <div>
-                        <strong>IBAN :</strong>
-                        {{ entreprise.iban }}
-                    </div>
-                {% endif %}
-
-                {% if entreprise.bic %}
-                    <div>
-                        <strong>BIC :</strong>
-                        {{ entreprise.bic }}
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
     </div>
 {% endif %}
 
-{% if facture.commentaire %}
+
+{% if devis.commentaire %}
     <div class="comment">
         <strong>Notes</strong>
         <br><br>
-        {{ facture.commentaire|nl2br }}
+        {{ devis.commentaire|nl2br }}
     </div>
 {% endif %}
 
@@ -546,18 +522,8 @@
             <br>
         {% endif %}
 
-        {% if entreprise.escomptePaiementAnticipe %}
-            Escompte pour paiement anticipé :
-            {{ entreprise.escomptePaiementAnticipe }}
-        {% else %}
-            Escompte pour paiement anticipé : néant.
-        {% endif %}
-
-        — Pénalités de retard :
-        {{ entreprise.tauxPenalitesRetard|number_format(2, ',', ' ') }} %
-
-        — Indemnité forfaitaire pour frais de recouvrement :
-        {{ entreprise.indemniteRecouvrement|number_format(2, ',', ' ') }} €
+        Ce devis est valable jusqu’au
+        {{ devis.dateValidite|date('d/m/Y') }}.
 
         {% if entreprise.mentionTva %}
             <br>
@@ -575,7 +541,7 @@
         —
     {% endif %}
 
-    Facture {{ facture.numero }} — Document généré avec FACTURA
+    Devis {{ devis.numero }} — Document généré avec FACTURA
 </div>
 </body>
 </html>

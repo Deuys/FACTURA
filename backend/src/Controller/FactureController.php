@@ -13,6 +13,7 @@ use App\Service\FactureMailerService;
 use App\Repository\FactureRepository;
 use App\Entity\LigneFacture;
 use App\Service\ActiviteService;
+use App\Service\NotificationService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -168,6 +169,8 @@ final class FactureController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         NumerotationService $numerotationService,
+        ActiviteService $activiteService,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -297,6 +300,32 @@ final class FactureController extends AbstractController
         $facture->setUser($user);
 
         $entityManager->persist($facture);
+        $activiteService->enregistrer(
+            user: $user,
+            type: 'facture_creee',
+            titre: 'Nouvelle facture créée',
+            description: sprintf(
+                '%s • %s',
+                $facture->getNumero(),
+                $facture->getClient()?->getEntreprise()
+                    ?: trim(sprintf(
+                        '%s %s',
+                        $facture->getClient()?->getPrenom() ?? '',
+                        $facture->getClient()?->getNom() ?? ''
+                    ))
+            )
+        );
+
+        $notificationService->creer(
+            user: $user,
+            type: 'facture_creee',
+            titre: 'Nouvelle facture créée',
+            message: sprintf(
+                'La facture %s a été créée.',
+                $facture->getNumero()
+            ),
+            url: null
+        );
         $entityManager->flush();
 
         return $this->json(
@@ -357,6 +386,7 @@ final class FactureController extends AbstractController
         FactureMailerService $factureMailerService,
         EntityManagerInterface $entityManager,
         ActiviteService $activiteService,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -402,6 +432,17 @@ final class FactureController extends AbstractController
                             )
                         )
                 )
+            );
+
+            $notificationService->creer(
+                user: $user,
+                type: 'facture_envoyee',
+                titre: 'Facture envoyée',
+                message: sprintf(
+                    'La facture %s a été envoyée.',
+                    $facture->getNumero()
+                ),
+                url: null
             );
 
             $entityManager->flush();
@@ -554,6 +595,7 @@ final class FactureController extends AbstractController
         Facture $facture,
         Request $request,
         EntityManagerInterface $entityManager,
+         NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -659,8 +701,54 @@ final class FactureController extends AbstractController
                     JsonResponse::HTTP_BAD_REQUEST
                 );
             }
+            $ancienStatut = $facture->getStatut();
 
             $facture->setStatut($statut);
+
+            if (
+                $ancienStatut !== StatutFacture::EN_RETARD &&
+                $statut === StatutFacture::EN_RETARD
+            ) {
+                $notificationService->creer(
+                    user: $user,
+                    type: 'facture_en_retard',
+                    titre: 'Facture en retard',
+                    message: sprintf(
+                        'La facture %s est maintenant en retard.',
+                        $facture->getNumero()
+                    )
+                );
+            }
+
+            if (
+                $ancienStatut !== StatutFacture::PARTIELLEMENT_PAYEE &&
+                $statut === StatutFacture::PARTIELLEMENT_PAYEE
+            ) {
+                $notificationService->creer(
+                    user: $user,
+                    type: 'facture_partiellement_payee',
+                    titre: 'Paiement partiel reçu',
+                    message: sprintf(
+                        'Un paiement partiel a été reçu pour la facture %s.',
+                        $facture->getNumero()
+                    )
+                );
+            }
+
+            if (
+                $ancienStatut !== StatutFacture::PAYEE &&
+                $statut === StatutFacture::PAYEE
+            ) {
+                $notificationService->creer(
+                    user: $user,
+                    type: 'facture_payee',
+                    titre: 'Facture payée',
+                    message: sprintf(
+                        'La facture %s est entièrement payée.',
+                        $facture->getNumero()
+                    )
+                );
+            }
         }
 
         if (

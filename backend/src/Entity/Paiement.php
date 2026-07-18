@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Enum\ModePaiement;
 use App\Enum\StatutPaiement;
+use App\Enum\OriginePaiement;
 use App\Repository\PaiementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -17,6 +18,12 @@ class Paiement
     #[ORM\Column]
     private ?int $id = null;
 
+    #[ORM\Column(length: 20, enumType: OriginePaiement::class)]
+    private OriginePaiement $origine = OriginePaiement::MANUEL;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $externalPaymentId = null;
+
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
     private ?string $montant = null;
 
@@ -27,7 +34,7 @@ class Paiement
     private ModePaiement $modePaiement;
 
     #[ORM\Column(length: 20, enumType: StatutPaiement::class)]
-    private StatutPaiement $statut = StatutPaiement::VALIDE;
+    private StatutPaiement $statut = StatutPaiement::CONFIRME;
 
     #[ORM\Column(length: 100, nullable: true)]
     private ?string $reference = null;
@@ -48,6 +55,30 @@ class Paiement
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getOrigine(): OriginePaiement
+    {
+        return $this->origine;
+    }
+
+    public function setOrigine(OriginePaiement $origine): static
+    {
+        $this->origine = $origine;
+
+        return $this;
+    }
+
+    public function getExternalPaymentId(): ?string
+    {
+        return $this->externalPaymentId;
+    }
+
+    public function setExternalPaymentId(?string $externalPaymentId): static
+    {
+        $this->externalPaymentId = $externalPaymentId;
+
+        return $this;
     }
 
     public function getMontant(): ?string
