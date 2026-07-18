@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+
+    <title>
+        Relance facture {{ facture.numero }}
+    </title>
+</head>
+
+<body style="
+    margin: 0;
+    padding: 0;
+    background-color: #f3f4f6;
+    font-family: Arial, sans-serif;
+    color: #111827;
+">
+    <table
+        role="presentation"
+        width="100%"
+        cellspacing="0"
+        cellpadding="0"
+        style="background-color: #f3f4f6; padding: 30px 15px;"
+    >
+        <tr>
+            <td align="center">
+                <table
+                    role="presentation"
+                    width="100%"
+                    cellspacing="0"
+                    cellpadding="0"
+                    style="
+                        max-width: 620px;
+                        background-color: #ffffff;
+                        border-radius: 12px;
+                        overflow: hidden;
+                    "
+                >
+                    <tr>
+                        <td style="
+                            padding: 24px;
+                            background-color: #ef4444;
+                            color: #ffffff;
+                        ">
+                            <h1 style="margin: 0; font-size: 22px;">
+                                Facture en retard
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 30px;">
+                            <p>
+                                Bonjour
+                                {{ client.prenom ?: '' }}
+                                {{ client.nom ?: '' }},
+                            </p>
+
+                            <p>
+                                Sauf erreur de notre part, la facture
+                                <strong>{{ facture.numero }}</strong>
+                                arrivée à échéance le
+                                <strong>
+                                    {{ facture.dateEcheance|date('d/m/Y') }}
+                                </strong>
+                                reste impayée.
+                            </p>
+
+                            <table
+                                role="presentation"
+                                width="100%"
+                                cellspacing="0"
+                                cellpadding="0"
+                                style="
+                                    margin: 25px 0;
+                                    background-color: #f9fafb;
+                                    border-radius: 8px;
+                                "
+                            >
+                                <tr>
+                                    <td style="padding: 18px;">
+                                        <p style="margin: 0 0 8px;">
+                                            <strong>Facture :</strong>
+                                            {{ facture.numero }}
+                                        </p>
+
+                                        <p style="margin: 0 0 8px;">
+                                            <strong>Montant TTC :</strong>
+                                            {{ facture.totalTTC|number_format(2, ',', ' ') }} €
+                                        </p>
+
+                                        <p style="margin: 0;">
+                                            <strong>Relance :</strong>
+                                            n°{{ numeroRelance }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p>
+                                Nous vous remercions de bien vouloir
+                                procéder au règlement dans les meilleurs
+                                délais.
+                            </p>
+
+                            <p>
+                                Si le paiement a déjà été effectué,
+                                veuillez ne pas tenir compte de ce message.
+                            </p>
+
+                            <p>
+                                La facture est jointe à cet e-mail au
+                                format PDF.
+                            </p>
+
+                            <p style="margin-top: 30px;">
+                                Cordialement,
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

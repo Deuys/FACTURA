@@ -48,6 +48,12 @@ class Facture
     #[ORM\Column(options: ['default' => false])]
     private bool $archivee = false;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $derniereRelanceAt = null;
+
+    #[ORM\Column(options: ['default' => 0])]
+    private int $nombreRelances = 0;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -205,6 +211,38 @@ class Facture
     public function setArchivee(bool $archivee): static
     {
         $this->archivee = $archivee;
+
+        return $this;
+    }
+
+    public function getDerniereRelanceAt(): ?\DateTimeImmutable
+    {
+        return $this->derniereRelanceAt;
+    }
+
+    public function setDerniereRelanceAt(
+        ?\DateTimeImmutable $derniereRelanceAt
+    ): static {
+        $this->derniereRelanceAt = $derniereRelanceAt;
+
+        return $this;
+    }
+
+    public function getNombreRelances(): int
+    {
+        return $this->nombreRelances;
+    }
+
+    public function setNombreRelances(int $nombreRelances): static
+    {
+        $this->nombreRelances = max(0, $nombreRelances);
+
+        return $this;
+    }
+
+    public function incrementerNombreRelances(): static
+    {
+        ++$this->nombreRelances;
 
         return $this;
     }

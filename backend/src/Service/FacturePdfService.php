@@ -16,10 +16,14 @@ final class FacturePdfService
     /**
      * Génère le contenu binaire PDF d'une facture.
      */
-    public function generate(Facture $facture): string
-    {
+    public function generate(
+        Facture $facture,
+        ?int $numeroRelance = null
+    ): string {
         $html = $this->twig->render('pdf/facture.html.twig', [
             'facture' => $facture,
+            'numeroRelance' => $numeroRelance,
+            'estRelance' => $numeroRelance !== null,
         ]);
 
         $options = new Options();

@@ -595,7 +595,7 @@ final class FactureController extends AbstractController
         Facture $facture,
         Request $request,
         EntityManagerInterface $entityManager,
-         NotificationService $notificationService,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -848,6 +848,10 @@ final class FactureController extends AbstractController
                 ?->format('Y-m-d'),
             'statut' => $facture->getStatut()->value,
             'archivee' => $facture->isArchivee(),
+            'nombreRelances' => $facture->getNombreRelances(),
+            'derniereRelanceAt' => $facture
+                ->getDerniereRelanceAt()
+                ?->format(DATE_ATOM),
             'totalHT' => $facture->getTotalHT(),
             'totalTVA' => $facture->getTotalTVA(),
             'totalTTC' => $facture->getTotalTTC(),

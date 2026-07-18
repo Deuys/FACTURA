@@ -537,31 +537,10 @@ final class DashboardService
 
     public function getEvolutionChiffreAffaires(
         User $user,
-        int $annee
+        ?int $annee = null,
+        ?string $periode = null
     ): array {
-        $debutAnnee = new \DateTimeImmutable(
-            sprintf('%d-01-01 00:00:00', $annee)
-        );
-
-        $debutAnneeSuivante = $debutAnnee->modify('+1 year');
-
-        $paiements = $this->entityManager
-            ->getRepository(Paiement::class)
-            ->createQueryBuilder('p')
-            ->select('p.montant', 'p.datePaiement')
-            ->innerJoin('p.facture', 'f')
-            ->andWhere('f.user = :user')
-            ->andWhere('p.statut = :statut')
-            ->andWhere('p.datePaiement >= :debutAnnee')
-            ->andWhere('p.datePaiement < :debutAnneeSuivante')
-            ->setParameter('user', $user)
-            ->setParameter('statut', StatutPaiement::CONFIRME)
-            ->setParameter('debutAnnee', $debutAnnee)
-            ->setParameter('debutAnneeSuivante', $debutAnneeSuivante)
-            ->getQuery()
-            ->getArrayResult();
-
-        $mois = [
+        $libellesMois = [
             1 => 'Jan',
             2 => 'Fév',
             3 => 'Mar',
@@ -576,7 +555,71 @@ final class DashboardService
             12 => 'Déc',
         ];
 
-        $totauxMensuels = array_fill(1, 12, 0.0);
+        if ($periode !== null) {
+            $nombreDeMois = match ($periode) {
+                '1m' => 1,
+                '3m' => 3,
+                '6m' => 6,
+                '12m' => 12,
+                default => throw new \InvalidArgumentException(
+                    'Période invalide.'
+                ),
+            };
+
+            $debutPeriode = new \DateTimeImmutable(
+                'first day of this month 00:00:00'
+            );
+
+            $debutPeriode = $debutPeriode->modify(
+                sprintf('-%d months', $nombreDeMois - 1)
+            );
+
+            $finPeriode = new \DateTimeImmutable(
+                'first day of next month 00:00:00'
+            );
+        } else {
+            $annee ??= (int) date('Y');
+
+            $debutPeriode = new \DateTimeImmutable(
+                sprintf('%d-01-01 00:00:00', $annee)
+            );
+
+            $finPeriode = $debutPeriode->modify('+1 year');
+            $nombreDeMois = 12;
+        }
+
+        $paiements = $this->entityManager
+            ->getRepository(Paiement::class)
+            ->createQueryBuilder('p')
+            ->select('p.montant', 'p.datePaiement')
+            ->innerJoin('p.facture', 'f')
+            ->andWhere('f.user = :user')
+            ->andWhere('p.statut = :statut')
+            ->andWhere('p.datePaiement >= :debutPeriode')
+            ->andWhere('p.datePaiement < :finPeriode')
+            ->setParameter('user', $user)
+            ->setParameter(
+                'statut',
+                StatutPaiement::CONFIRME
+            )
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
+            ->getQuery()
+            ->getArrayResult();
+
+        $totauxMensuels = [];
+        $moisAffiches = [];
+
+        for ($index = 0; $index < $nombreDeMois; ++$index) {
+            $dateDuMois = $debutPeriode->modify(
+                sprintf('+%d months', $index)
+            );
+
+            $cleMois = $dateDuMois->format('Y-m');
+
+            $totauxMensuels[$cleMois] = 0.0;
+            $moisAffiches[$cleMois] = $dateDuMois;
+        }
 
         foreach ($paiements as $paiement) {
             $datePaiement = $paiement['datePaiement'];
@@ -585,19 +628,29 @@ final class DashboardService
                 continue;
             }
 
-            $numeroMois = (int) $datePaiement->format('n');
+            $cleMois = $datePaiement->format('Y-m');
 
-            $totauxMensuels[$numeroMois] += (float) $paiement['montant'];
+            if (!array_key_exists($cleMois, $totauxMensuels)) {
+                continue;
+            }
+
+            $totauxMensuels[$cleMois] +=
+                (float) $paiement['montant'];
         }
 
-        $resultat = [];
+        $donnees = [];
 
-        foreach ($mois as $numero => $libelle) {
-            $resultat[] = [
-                'mois' => $libelle,
-                'numeroMois' => $numero,
+        foreach ($moisAffiches as $cleMois => $dateDuMois) {
+            $numeroMois = (int) $dateDuMois->format('n');
+            $anneeDuMois = (int) $dateDuMois->format('Y');
+
+            $donnees[] = [
+                'mois' => $libellesMois[$numeroMois],
+                'numeroMois' => $numeroMois,
+                'annee' => $anneeDuMois,
+                'cle' => $cleMois,
                 'montant' => number_format(
-                    $totauxMensuels[$numero],
+                    $totauxMensuels[$cleMois],
                     2,
                     '.',
                     ''
@@ -606,14 +659,19 @@ final class DashboardService
         }
 
         return [
-            'annee' => $annee,
-            'totalAnnuel' => number_format(
+            'periode' => $periode,
+            'annee' => $periode === null ? $annee : null,
+            'dateDebut' => $debutPeriode->format('Y-m-d'),
+            'dateFin' => $finPeriode
+                ->modify('-1 day')
+                ->format('Y-m-d'),
+            'total' => number_format(
                 array_sum($totauxMensuels),
                 2,
                 '.',
                 ''
             ),
-            'donnees' => $resultat,
+            'donnees' => $donnees,
         ];
     }
 

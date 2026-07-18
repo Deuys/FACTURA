@@ -133,16 +133,49 @@ final class DashboardController extends AbstractController
         );
     }
 
+
     #[Route(
         '/api/dashboard/evolution-chiffre-affaires',
         name: 'api_dashboard_evolution_chiffre_affaires',
         methods: ['GET']
     )]
+    
     public function evolutionChiffreAffaires(
         Request $request,
         DashboardService $dashboardService,
         #[CurrentUser] User $user
     ): JsonResponse {
+        $periode = $request->query->get('periode');
+
+        if ($periode !== null) {
+            $periode = strtolower(trim((string) $periode));
+
+            $periodesAutorisees = [
+                '1m',
+                '3m',
+                '6m',
+                '12m',
+            ];
+
+            if (!in_array($periode, $periodesAutorisees, true)) {
+                return $this->json(
+                    [
+                        'message' => 'Période invalide.',
+                        'periodesAutorisees' => $periodesAutorisees,
+                    ],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+
+            return $this->json(
+                $dashboardService->getEvolutionChiffreAffaires(
+                    $user,
+                    null,
+                    $periode
+                )
+            );
+        }
+
         $annee = $request->query->getInt(
             'annee',
             (int) date('Y')

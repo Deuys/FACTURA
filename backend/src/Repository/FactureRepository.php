@@ -142,4 +142,76 @@ class FactureRepository extends ServiceEntityRepository
     {
         return array_keys(self::SORT_FIELDS);
     }
+
+    /**
+     * @return Facture[]
+     */
+    public function findFacturesAMettreEnRetard(
+        \DateTimeImmutable $aujourdhui
+    ): array {
+        return $this->createQueryBuilder('f')
+            ->leftJoin('f.client', 'c')
+            ->addSelect('c')
+            ->leftJoin('f.user', 'u')
+            ->addSelect('u')
+            ->andWhere('f.archivee = :archivee')
+            ->andWhere('f.dateEcheance < :aujourdhui')
+            ->andWhere('f.statut IN (:statuts)')
+            ->setParameter('archivee', false)
+            ->setParameter('aujourdhui', $aujourdhui)
+            ->setParameter('statuts', [
+                StatutFacture::EN_ATTENTE->value,
+                StatutFacture::ENVOYEE->value,
+                StatutFacture::PARTIELLEMENT_PAYEE->value,
+            ])
+            ->orderBy('f.dateEcheance', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return Facture[]
+     */
+    public function findFacturesARelancer(
+        \DateTimeImmutable $aujourdhui,
+        int $delaiEntreRelances = 7,
+        int $nombreMaximumRelances = 3
+    ): array {
+        $dateLimiteDerniereRelance = $aujourdhui->modify(
+            sprintf('-%d days', $delaiEntreRelances)
+        );
+
+        return $this->createQueryBuilder('f')
+            ->leftJoin('f.client', 'c')
+            ->addSelect('c')
+            ->leftJoin('f.user', 'u')
+            ->addSelect('u')
+            ->andWhere('f.archivee = :archivee')
+            ->andWhere('f.statut = :statut')
+            ->andWhere('f.dateEcheance < :aujourdhui')
+            ->andWhere('f.nombreRelances < :nombreMaximumRelances')
+            ->andWhere('c.email IS NOT NULL')
+            ->andWhere("TRIM(c.email) != ''")
+            ->andWhere(
+                'f.derniereRelanceAt IS NULL
+            OR f.derniereRelanceAt <= :dateLimiteDerniereRelance'
+            )
+            ->setParameter('archivee', false)
+            ->setParameter(
+                'statut',
+                StatutFacture::EN_RETARD->value
+            )
+            ->setParameter('aujourdhui', $aujourdhui)
+            ->setParameter(
+                'nombreMaximumRelances',
+                $nombreMaximumRelances
+            )
+            ->setParameter(
+                'dateLimiteDerniereRelance',
+                $dateLimiteDerniereRelance
+            )
+            ->orderBy('f.dateEcheance', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
