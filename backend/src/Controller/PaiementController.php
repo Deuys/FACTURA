@@ -13,6 +13,7 @@ use App\Repository\PaiementRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\ActiviteService;
 use App\Service\NotificationService;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -162,6 +163,7 @@ final class PaiementController extends AbstractController
         EntityManagerInterface $entityManager,
         ActiviteService $activiteService,
         NotificationService $notificationService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -263,6 +265,24 @@ final class PaiementController extends AbstractController
                 ? trim((string) $data['commentaire'])
                 : null
         );
+
+        $errors = $validator->validate($paiement);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
 
         $entityManager->persist($paiement);
 
@@ -378,6 +398,7 @@ final class PaiementController extends AbstractController
         Paiement $paiement,
         Request $request,
         EntityManagerInterface $entityManager,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         $facture = $paiement->getFacture();
@@ -481,6 +502,24 @@ final class PaiementController extends AbstractController
                 $data['commentaire'] !== null
                     ? trim((string) $data['commentaire'])
                     : null
+            );
+        }
+
+        $errors = $validator->validate($paiement);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
             );
         }
 

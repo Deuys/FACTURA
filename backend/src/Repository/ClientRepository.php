@@ -35,19 +35,27 @@ class ClientRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return Client[]
+     * @return array{
+     *     clients: Client[],
+     *     total: int
+     * }
      */
     public function findForUserWithFilters(
         User $user,
         ?string $recherche = null,
         string $filtre = 'tous',
         string $tri = 'nom',
-        string $ordre = 'ASC'
+        string $ordre = 'ASC',
+        int $page = 1,
+        int $limit = 20
     ): array {
         $ordre = strtoupper($ordre) === 'DESC' ? 'DESC' : 'ASC';
 
         $champTri = self::SORT_FIELDS[$tri]
             ?? self::SORT_FIELDS['nom'];
+
+        $page = max(1, $page);
+        $limit = max(1, min($limit, 100));
 
         $queryBuilder = $this
             ->createQueryBuilder('c')
@@ -57,15 +65,35 @@ class ClientRepository extends ServiceEntityRepository
         $this->applySearch($queryBuilder, $recherche);
         $this->applyFilter($queryBuilder, $filtre);
 
-        $queryBuilder->orderBy($champTri, $ordre);
+        /*
+     * On clone la requête avant d'ajouter le tri et la pagination.
+     * Cette requête sert uniquement à compter les résultats.
+     */
+        $countQueryBuilder = clone $queryBuilder;
+
+        $total = (int) $countQueryBuilder
+            ->select('COUNT(DISTINCT c.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $queryBuilder
+            ->orderBy($champTri, $ordre)
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
 
         if ($tri !== 'nom') {
             $queryBuilder->addOrderBy('c.nom', 'ASC');
         }
 
-        return $queryBuilder
+        /** @var Client[] $clients */
+        $clients = $queryBuilder
             ->getQuery()
             ->getResult();
+
+        return [
+            'clients' => $clients,
+            'total' => $total,
+        ];
     }
 
     private function applySearch(

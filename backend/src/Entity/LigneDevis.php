@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\LigneDevisRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LigneDevisRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -16,33 +17,75 @@ class LigneDevis
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'La quantité est obligatoire.')]
+    #[Assert\Positive(message: 'La quantité doit être strictement supérieure à 0.')]
     private ?string $quantite = '1.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le prix unitaire HT est obligatoire.')]
+    #[Assert\PositiveOrZero(
+        message: 'Le prix unitaire HT doit être supérieur ou égal à 0.'
+    )]
     private ?string $prixUnitaireHT = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
+    #[Assert\NotBlank(message: 'Le taux de TVA est obligatoire.')]
+    #[Assert\Range(
+        min: 0,
+        max: 100,
+        notInRangeMessage: 'Le taux de TVA doit être compris entre {{ min }} et {{ max }} %.'
+    )]
     private ?string $tva = '20.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
+    #[Assert\Range(
+        min: 0,
+        max: 100,
+        notInRangeMessage: 'La remise doit être comprise entre {{ min }} et {{ max }} %.'
+    )]
     private ?string $remise = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le total HT est obligatoire.')]
+    #[Assert\PositiveOrZero(
+        message: 'Le total HT doit être supérieur ou égal à 0.'
+    )]
     private ?string $totalHT = '0.00';
 
     #[ORM\Column(length: 150)]
+    #[Assert\NotBlank(message: 'La désignation est obligatoire.')]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'La désignation ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $designation = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'La description ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $description = null;
 
     #[ORM\Column(length: 30, nullable: true)]
+    #[Assert\Length(
+        max: 30,
+        maxMessage: "L'unité ne peut pas dépasser {{ limit }} caractères."
+    )]
     private ?string $unite = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le total TVA est obligatoire.')]
+    #[Assert\PositiveOrZero(
+        message: 'Le total TVA doit être supérieur ou égal à 0.'
+    )]
     private ?string $totalTVA = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le total TTC est obligatoire.')]
+    #[Assert\PositiveOrZero(
+        message: 'Le total TTC doit être supérieur ou égal à 0.'
+    )]
     private ?string $totalTTC = '0.00';
 
     #[ORM\Column]
@@ -53,6 +96,7 @@ class LigneDevis
 
     #[ORM\ManyToOne(inversedBy: 'ligneDevis')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Le devis est obligatoire.')]
     private ?Devis $devis = null;
 
     #[ORM\ManyToOne(inversedBy: 'ligneDevis')]

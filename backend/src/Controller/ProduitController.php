@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class ProduitController extends AbstractController
 {
@@ -25,9 +26,7 @@ final class ProduitController extends AbstractController
         );
 
         $filtre = strtolower(
-            trim(
-                (string) $request->query->get('filtre', 'tous')
-            )
+            trim((string) $request->query->get('filtre', 'tous'))
         );
 
         $tri = trim(
@@ -35,10 +34,11 @@ final class ProduitController extends AbstractController
         );
 
         $ordre = strtoupper(
-            trim(
-                (string) $request->query->get('ordre', 'ASC')
-            )
+            trim((string) $request->query->get('ordre', 'ASC'))
         );
+
+        $page = $request->query->getInt('page', 1);
+        $limit = $request->query->getInt('limit', 20);
 
         if (!$produitRepository->isFilterAllowed($filtre)) {
             return $this->json(
@@ -64,20 +64,44 @@ final class ProduitController extends AbstractController
 
         if (!in_array($ordre, ['ASC', 'DESC'], true)) {
             return $this->json(
+                ['message' => 'L’ordre doit être ASC ou DESC.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if ($page < 1) {
+            return $this->json(
+                ['message' => 'Le numéro de page doit être supérieur à 0.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if ($limit < 1 || $limit > 100) {
+            return $this->json(
                 [
-                    'message' => 'L’ordre doit être ASC ou DESC.',
+                    'message' =>
+                    'Le nombre de résultats par page doit être compris entre 1 et 100.',
                 ],
                 JsonResponse::HTTP_BAD_REQUEST
             );
         }
 
-        $produits = $produitRepository->findForUserWithFilters(
+        $resultat = $produitRepository->findForUserWithFilters(
             user: $user,
             recherche: $recherche,
             filtre: $filtre,
             tri: $tri,
-            ordre: $ordre
+            ordre: $ordre,
+            page: $page,
+            limit: $limit
         );
+
+        $produits = $resultat['produits'];
+        $total = $resultat['total'];
+
+        $nombrePages = $total > 0
+            ? (int) ceil($total / $limit)
+            : 0;
 
         $data = array_map(
             fn(Produit $produit): array =>
@@ -87,14 +111,20 @@ final class ProduitController extends AbstractController
 
         return $this->json([
             'filtres' => [
-                'recherche' => $recherche !== ''
-                    ? $recherche
-                    : null,
+                'recherche' => $recherche !== '' ? $recherche : null,
                 'filtre' => $filtre,
                 'tri' => $tri,
                 'ordre' => $ordre,
             ],
-            'nombreResultats' => count($data),
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'nombrePages' => $nombrePages,
+                'nombreResultats' => count($data),
+                'pagePrecedente' => $page > 1 ? $page - 1 : null,
+                'pageSuivante' => $page < $nombrePages ? $page + 1 : null,
+            ],
             'produits' => $data,
         ]);
     }
@@ -103,72 +133,64 @@ final class ProduitController extends AbstractController
     public function create(
         Request $request,
         EntityManagerInterface $entityManager,
+        ProduitRepository $produitRepository,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
 
-        $nom = trim((string) ($data['nom'] ?? ''));
-        $reference = trim((string) ($data['reference'] ?? ''));
-        $type = strtolower(
-            trim((string) ($data['type'] ?? 'produit'))
+        $typeError = $this->validatePayloadTypes($data);
+
+        if ($typeError !== null) {
+            return $typeError;
+        }
+
+        $reference = $this->normalizeRequiredString(
+            $data['reference'] ?? null
         );
 
-        if ($nom === '') {
+        if (
+            $reference !== ''
+            && $produitRepository->referenceExistsForUser($user, $reference)
+        ) {
             return $this->json(
-                ['message' => 'Le nom est obligatoire.'],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
-        }
-
-        if ($reference === '') {
-            return $this->json(
-                ['message' => 'La référence est obligatoire.'],
-                JsonResponse::HTTP_BAD_REQUEST
-            );
-        }
-
-        if (!in_array($type, ['produit', 'service'], true)) {
-            return $this->json(
-                [
-                    'message' =>
-                    'Le type doit être produit ou service.',
-                ],
-                JsonResponse::HTTP_BAD_REQUEST
+                ['message' => 'Cette référence est déjà utilisée.'],
+                JsonResponse::HTTP_CONFLICT
             );
         }
 
         $produit = new Produit();
-
-        $produit->setNom($nom);
-
+        $produit->setNom(
+            $this->normalizeRequiredString($data['nom'] ?? null)
+        );
         $produit->setDescription(
-            isset($data['description'])
-                ? (string) $data['description']
-                : null
+            $this->normalizeNullableString($data['description'] ?? null)
         );
-
-        $produit->setType($type);
+        $produit->setType(
+            strtolower(
+                $this->normalizeRequiredString($data['type'] ?? 'produit')
+            )
+        );
         $produit->setReference($reference);
-
         $produit->setPrixHT(
-            (string) ($data['prixHT'] ?? '0.00')
+            $this->normalizeDecimal($data['prixHT'] ?? '0.00')
         );
-
         $produit->setTva(
-            (string) ($data['tva'] ?? '20.00')
+            $this->normalizeDecimal($data['tva'] ?? '20.00')
         );
-
         $produit->setUnite(
-            isset($data['unite'])
-                ? (string) $data['unite']
-                : null
+            $this->normalizeNullableString($data['unite'] ?? null)
         );
-
         $produit->setActif(
-            (bool) ($data['actif'] ?? true)
+            $this->normalizeBoolean($data['actif'] ?? true)
         );
-
         $produit->setUser($user);
+
+        $validationResponse = $this->validateProduit($produit, $validator);
+
+        if ($validationResponse !== null) {
+            return $validationResponse;
+        }
 
         $entityManager->persist($produit);
         $entityManager->flush();
@@ -176,8 +198,7 @@ final class ProduitController extends AbstractController
         return $this->json(
             [
                 'message' => 'Produit créé avec succès.',
-                'produit' =>
-                $this->transformerProduit($produit),
+                'produit' => $this->transformerProduit($produit),
             ],
             JsonResponse::HTTP_CREATED
         );
@@ -190,14 +211,12 @@ final class ProduitController extends AbstractController
     ): JsonResponse {
         if ($produit->getUser() !== $user) {
             return $this->json(
-                ['message' => 'Accès refusé.'],
-                JsonResponse::HTTP_FORBIDDEN
+                ['message' => 'Produit introuvable.'],
+                JsonResponse::HTTP_NOT_FOUND
             );
         }
 
-        return $this->json(
-            $this->transformerProduit($produit)
-        );
+        return $this->json($this->transformerProduit($produit));
     }
 
     #[Route('/api/produits/{id}', name: 'api_produits_update', methods: ['PUT'])]
@@ -205,63 +224,61 @@ final class ProduitController extends AbstractController
         Produit $produit,
         Request $request,
         EntityManagerInterface $entityManager,
+        ProduitRepository $produitRepository,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($produit->getUser() !== $user) {
             return $this->json(
-                ['message' => 'Accès refusé.'],
-                JsonResponse::HTTP_FORBIDDEN
+                ['message' => 'Produit introuvable.'],
+                JsonResponse::HTTP_NOT_FOUND
             );
         }
 
         $data = $request->toArray();
 
+        $typeError = $this->validatePayloadTypes($data);
+
+        if ($typeError !== null) {
+            return $typeError;
+        }
+
         if (array_key_exists('nom', $data)) {
-            $nom = trim((string) $data['nom']);
-
-            if ($nom === '') {
-                return $this->json(
-                    ['message' => 'Le nom est obligatoire.'],
-                    JsonResponse::HTTP_BAD_REQUEST
-                );
-            }
-
-            $produit->setNom($nom);
+            $produit->setNom(
+                $this->normalizeRequiredString($data['nom'])
+            );
         }
 
         if (array_key_exists('description', $data)) {
             $produit->setDescription(
-                $data['description'] !== null
-                    ? (string) $data['description']
-                    : null
+                $this->normalizeNullableString($data['description'])
             );
         }
 
         if (array_key_exists('type', $data)) {
-            $type = strtolower(
-                trim((string) $data['type'])
+            $produit->setType(
+                strtolower(
+                    $this->normalizeRequiredString($data['type'])
+                )
             );
-
-            if (!in_array($type, ['produit', 'service'], true)) {
-                return $this->json(
-                    [
-                        'message' =>
-                        'Le type doit être produit ou service.',
-                    ],
-                    JsonResponse::HTTP_BAD_REQUEST
-                );
-            }
-
-            $produit->setType($type);
         }
 
         if (array_key_exists('reference', $data)) {
-            $reference = trim((string) $data['reference']);
+            $reference = $this->normalizeRequiredString(
+                $data['reference']
+            );
 
-            if ($reference === '') {
+            if (
+                $reference !== ''
+                && $produitRepository->referenceExistsForUser(
+                    $user,
+                    $reference,
+                    $produit->getId()
+                )
+            ) {
                 return $this->json(
-                    ['message' => 'La référence est obligatoire.'],
-                    JsonResponse::HTTP_BAD_REQUEST
+                    ['message' => 'Cette référence est déjà utilisée.'],
+                    JsonResponse::HTTP_CONFLICT
                 );
             }
 
@@ -270,36 +287,39 @@ final class ProduitController extends AbstractController
 
         if (array_key_exists('prixHT', $data)) {
             $produit->setPrixHT(
-                (string) $data['prixHT']
+                $this->normalizeDecimal($data['prixHT'])
             );
         }
 
         if (array_key_exists('tva', $data)) {
             $produit->setTva(
-                (string) $data['tva']
+                $this->normalizeDecimal($data['tva'])
             );
         }
 
         if (array_key_exists('unite', $data)) {
             $produit->setUnite(
-                $data['unite'] !== null
-                    ? (string) $data['unite']
-                    : null
+                $this->normalizeNullableString($data['unite'])
             );
         }
 
         if (array_key_exists('actif', $data)) {
             $produit->setActif(
-                (bool) $data['actif']
+                $this->normalizeBoolean($data['actif'])
             );
+        }
+
+        $validationResponse = $this->validateProduit($produit, $validator);
+
+        if ($validationResponse !== null) {
+            return $validationResponse;
         }
 
         $entityManager->flush();
 
         return $this->json([
             'message' => 'Produit modifié avec succès.',
-            'produit' =>
-            $this->transformerProduit($produit),
+            'produit' => $this->transformerProduit($produit),
         ]);
     }
 
@@ -311,8 +331,21 @@ final class ProduitController extends AbstractController
     ): JsonResponse {
         if ($produit->getUser() !== $user) {
             return $this->json(
-                ['message' => 'Accès refusé.'],
-                JsonResponse::HTTP_FORBIDDEN
+                ['message' => 'Produit introuvable.'],
+                JsonResponse::HTTP_NOT_FOUND
+            );
+        }
+
+        if (
+            !$produit->getLigneFactures()->isEmpty()
+            || !$produit->getLigneDevis()->isEmpty()
+        ) {
+            return $this->json(
+                [
+                    'message' =>
+                    'Ce produit est déjà utilisé dans une facture ou un devis. Désactivez-le au lieu de le supprimer.',
+                ],
+                JsonResponse::HTTP_CONFLICT
             );
         }
 
@@ -322,6 +355,131 @@ final class ProduitController extends AbstractController
         return $this->json([
             'message' => 'Produit supprimé avec succès.',
         ]);
+    }
+
+    private function validatePayloadTypes(array $data): ?JsonResponse
+    {
+        $stringFields = [
+            'nom',
+            'description',
+            'type',
+            'reference',
+            'unite',
+        ];
+
+        foreach ($stringFields as $field) {
+            if (
+                array_key_exists($field, $data)
+                && $data[$field] !== null
+                && !is_string($data[$field])
+            ) {
+                return $this->json(
+                    [
+                        'message' =>
+                        sprintf('Le champ "%s" doit être une chaîne de caractères.', $field),
+                    ],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
+
+        foreach (['prixHT', 'tva'] as $field) {
+            if (
+                array_key_exists($field, $data)
+                && !is_int($data[$field])
+                && !is_float($data[$field])
+                && !is_string($data[$field])
+            ) {
+                return $this->json(
+                    [
+                        'message' =>
+                        sprintf('Le champ "%s" doit être un nombre.', $field),
+                    ],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
+        }
+
+        if (
+            array_key_exists('actif', $data)
+            && !$this->isBooleanLike($data['actif'])
+        ) {
+            return $this->json(
+                ['message' => 'Le champ "actif" doit être un booléen.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        return null;
+    }
+
+    private function validateProduit(
+        Produit $produit,
+        ValidatorInterface $validator
+    ): ?JsonResponse {
+        $violations = $validator->validate($produit);
+
+        if (count($violations) === 0) {
+            return null;
+        }
+
+        $erreurs = [];
+
+        foreach ($violations as $violation) {
+            $erreurs[$violation->getPropertyPath()][] =
+                $violation->getMessage();
+        }
+
+        return $this->json(
+            [
+                'message' => 'Les données du produit sont invalides.',
+                'erreurs' => $erreurs,
+            ],
+            JsonResponse::HTTP_UNPROCESSABLE_ENTITY
+        );
+    }
+
+    private function normalizeRequiredString(mixed $value): string
+    {
+        return trim((string) $value);
+    }
+
+    private function normalizeNullableString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value !== '' ? $value : null;
+    }
+
+    private function normalizeDecimal(mixed $value): string
+    {
+        return str_replace(',', '.', trim((string) $value));
+    }
+
+    private function normalizeBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if ($value === 1 || $value === '1' || $value === 'true') {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function isBooleanLike(mixed $value): bool
+    {
+        return in_array(
+            $value,
+            [true, false, 1, 0, '1', '0', 'true', 'false'],
+            true
+        );
     }
 
     private function transformerProduit(

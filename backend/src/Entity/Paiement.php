@@ -8,6 +8,8 @@ use App\Enum\OriginePaiement;
 use App\Repository\PaiementRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: PaiementRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -19,27 +21,49 @@ class Paiement
     private ?int $id = null;
 
     #[ORM\Column(length: 20, enumType: OriginePaiement::class)]
+    #[Assert\NotNull]
     private OriginePaiement $origine = OriginePaiement::MANUEL;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'L’identifiant externe ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $externalPaymentId = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le montant est obligatoire.')]
+    #[Assert\Positive(message: 'Le montant doit être supérieur à zéro.')]
     private ?string $montant = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Assert\NotNull(message: 'La date du paiement est obligatoire.')]
+    #[Assert\LessThanOrEqual(
+        'today',
+        message: 'La date du paiement ne peut pas être dans le futur.'
+    )]
     private ?\DateTimeImmutable $datePaiement = null;
 
     #[ORM\Column(length: 30, enumType: ModePaiement::class)]
+    #[Assert\NotNull(message: 'Le mode de paiement est obligatoire.')]
     private ModePaiement $modePaiement;
 
     #[ORM\Column(length: 20, enumType: StatutPaiement::class)]
+    #[Assert\NotNull(message: 'Le statut du paiement est obligatoire.')]
     private StatutPaiement $statut = StatutPaiement::CONFIRME;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: 'La référence ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $reference = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'Le commentaire ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $commentaire = null;
 
     #[ORM\Column]
@@ -50,6 +74,7 @@ class Paiement
 
     #[ORM\ManyToOne(inversedBy: 'paiements')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'La facture associée est obligatoire.')]
     private ?Facture $facture = null;
 
     public function getId(): ?int
@@ -187,6 +212,26 @@ class Paiement
         $this->facture = $facture;
 
         return $this;
+    }
+
+    #[Assert\Callback]
+    public function validateExternalPaymentId(
+        ExecutionContextInterface $context
+    ): void {
+        if (
+            $this->origine !== OriginePaiement::MANUEL
+            && (
+                $this->externalPaymentId === null
+                || trim($this->externalPaymentId) === ''
+            )
+        ) {
+            $context
+                ->buildViolation(
+                    'L’identifiant externe est obligatoire pour un paiement provenant d’un prestataire.'
+                )
+                ->atPath('externalPaymentId')
+                ->addViolation();
+        }
     }
 
     #[ORM\PrePersist]

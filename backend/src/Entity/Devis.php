@@ -8,9 +8,16 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: DevisRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[UniqueEntity(
+    fields: ['numero'],
+    message: 'Ce numéro de devis existe déjà.'
+)]
 class Devis
 {
     #[ORM\Id]
@@ -18,30 +25,46 @@ class Devis
     #[ORM\Column]
     private ?int $id = null;
 
-
     #[ORM\Column(length: 30, unique: true)]
+    #[Assert\NotBlank(message: 'Le numéro est obligatoire.')]
+    #[Assert\Length(
+        max: 30,
+        maxMessage: 'Le numéro ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $numero = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Assert\NotNull(message: "La date d'émission est obligatoire.")]
     private ?\DateTimeImmutable $dateEmission = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Assert\NotNull(message: 'La date de validité est obligatoire.')]
     private ?\DateTimeImmutable $dateValidite = null;
 
     #[ORM\Column(length: 20, enumType: StatutDevis::class)]
+    #[Assert\NotNull(message: 'Le statut est obligatoire.')]
     private StatutDevis $statut = StatutDevis::BROUILLON;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le total HT est obligatoire.')]
+    #[Assert\PositiveOrZero(message: 'Le total HT doit être supérieur ou égal à 0.')]
     private ?string $totalHT = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le total TVA est obligatoire.')]
+    #[Assert\PositiveOrZero(message: 'Le total TVA doit être supérieur ou égal à 0.')]
     private ?string $totalTVA = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le total TTC est obligatoire.')]
+    #[Assert\PositiveOrZero(message: 'Le total TTC doit être supérieur ou égal à 0.')]
     private ?string $totalTTC = '0.00';
 
-
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'Le commentaire ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $commentaire = null;
 
     #[ORM\Column]
@@ -52,10 +75,12 @@ class Devis
 
     #[ORM\ManyToOne(inversedBy: 'devis')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Le client est obligatoire.')]
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'devis')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: "L'utilisateur est obligatoire.")]
     private ?User $user = null;
 
     /**
@@ -67,6 +92,7 @@ class Devis
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
+    #[Assert\Valid]
     private Collection $ligneDevis;
 
     public function __construct()
@@ -221,6 +247,23 @@ class Devis
         $this->user = $user;
 
         return $this;
+    }
+
+    #[Assert\Callback]
+    public function validateDates(ExecutionContextInterface $context): void
+    {
+        if (
+            $this->dateEmission !== null
+            && $this->dateValidite !== null
+            && $this->dateValidite < $this->dateEmission
+        ) {
+            $context
+                ->buildViolation(
+                    "La date de validité doit être postérieure ou égale à la date d'émission."
+                )
+                ->atPath('dateValidite')
+                ->addViolation();
+        }
     }
 
     #[ORM\PrePersist]

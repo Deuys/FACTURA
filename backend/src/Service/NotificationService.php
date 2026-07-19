@@ -5,11 +5,14 @@ namespace App\Service;
 use App\Entity\Notification;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Validator\Exception\ValidationFailedException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class NotificationService
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager
+        private readonly EntityManagerInterface $entityManager,
+        private readonly ValidatorInterface $validator
     ) {}
 
     public function creer(
@@ -27,6 +30,12 @@ class NotificationService
         $notification->setMessage($message);
         $notification->setUrl($url);
         $notification->setLue(false);
+
+        $errors = $this->validator->validate($notification);
+
+        if (count($errors) > 0) {
+            throw new ValidationFailedException($notification, $errors);
+        }
 
         $this->entityManager->persist($notification);
 

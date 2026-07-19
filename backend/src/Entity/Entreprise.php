@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use App\Enum\ModePaiement;
 use App\Enum\TypeDelaiPaiement;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: EntrepriseRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -20,45 +21,103 @@ class Entreprise
 
     #[ORM\OneToOne(inversedBy: 'entreprise')]
     #[ORM\JoinColumn(nullable: false, unique: true, onDelete: 'CASCADE')]
+    #[Assert\NotNull(message: 'L’utilisateur associé est obligatoire.')]
     private ?User $user = null;
 
     #[ORM\Column(length: 150)]
+    #[Assert\NotBlank(message: 'Le nom de l’entreprise est obligatoire.')]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $nom = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'Le chemin du logo ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $logo = null;
 
     #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(message: 'L’adresse est obligatoire.')]
+    #[Assert\Length(
+        max: 255,
+        maxMessage: 'L’adresse ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $adresse = null;
 
     #[ORM\Column(length: 100)]
+    #[Assert\NotBlank(message: 'La ville est obligatoire.')]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: 'La ville ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $ville = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank(message: 'Le code postal est obligatoire.')]
+    #[Assert\Length(
+        max: 20,
+        maxMessage: 'Le code postal ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $codePostal = null;
-
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: 'Le pays ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $pays = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Regex(
+        pattern: '/^\d{14}$/',
+        message: 'Le SIRET doit contenir exactement 14 chiffres.'
+    )]
     private ?string $siret = null;
 
     #[ORM\Column(length: 30, nullable: true)]
+    #[Assert\Regex(
+        pattern: '/^[A-Z]{2}[A-Z0-9]{2,13}$/',
+        message: 'Le numéro de TVA intracommunautaire est invalide.'
+    )]
     private ?string $tvaIntracom = null;
 
     #[ORM\Column(length: 30, nullable: true)]
+    #[Assert\Length(
+        max: 30,
+        maxMessage: 'Le téléphone ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    #[Assert\Regex(
+        pattern: '/^[0-9+().\s-]+$/',
+        message: 'Le numéro de téléphone contient des caractères invalides.'
+    )]
     private ?string $telephone = null;
 
     #[ORM\Column(length: 180, nullable: true)]
+    #[Assert\Email(message: 'L’adresse e-mail de l’entreprise est invalide.')]
+    #[Assert\Length(max: 180)]
     private ?string $email = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Regex(
+        pattern: '/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/',
+        message: 'L’IBAN est invalide.'
+    )]
     private ?string $iban = null;
 
     #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Regex(
+        pattern: '/^[A-Z0-9]{8}([A-Z0-9]{3})?$/',
+        message: 'Le BIC est invalide.'
+    )]
     private ?string $bic = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'Les conditions de règlement ne peuvent pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $conditionsReglement = null;
 
     #[ORM\Column(
@@ -66,10 +125,17 @@ class Entreprise
         enumType: TypeDelaiPaiement::class,
         options: ['default' => 'Jours nets']
     )]
+    #[Assert\NotNull(message: 'Le type de délai de paiement est obligatoire.')]
     private TypeDelaiPaiement $typeDelaiPaiement =
     TypeDelaiPaiement::JOURS_NETS;
 
     #[ORM\Column]
+    #[Assert\NotNull(message: 'Le délai de paiement est obligatoire.')]
+    #[Assert\Range(
+        min: 0,
+        max: 365,
+        notInRangeMessage: 'Le délai de paiement doit être compris entre {{ min }} et {{ max }} jours.'
+    )]
     private ?int $delaiPaiement = 30;
 
     #[ORM\Column(
@@ -77,6 +143,7 @@ class Entreprise
         enumType: ModePaiement::class,
         options: ['default' => 'Virement bancaire']
     )]
+    #[Assert\NotNull(message: 'Le mode de paiement par défaut est obligatoire.')]
     private ModePaiement $modePaiementDefaut = ModePaiement::VIREMENT;
 
     #[ORM\Column(
@@ -85,9 +152,16 @@ class Entreprise
         scale: 2,
         options: ['default' => '12.40']
     )]
+    #[Assert\NotBlank(message: 'Le taux de pénalités est obligatoire.')]
+    #[Assert\Range(
+        min: 0,
+        max: 100,
+        notInRangeMessage: 'Le taux de pénalités doit être compris entre {{ min }} et {{ max }}.'
+    )]
     private ?string $tauxPenalitesRetard = '12.40';
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(max: 5000)]
     private ?string $escomptePaiementAnticipe = null;
 
     #[ORM\Column(
@@ -96,33 +170,67 @@ class Entreprise
         scale: 2,
         options: ['default' => '40.00']
     )]
+    #[Assert\NotBlank(message: 'L’indemnité de recouvrement est obligatoire.')]
+    #[Assert\PositiveOrZero(
+        message: 'L’indemnité de recouvrement ne peut pas être négative.'
+    )]
     private ?string $indemniteRecouvrement = '40.00';
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     private ?string $formeJuridique = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 15, scale: 2, nullable: true)]
+    #[Assert\PositiveOrZero(
+        message: 'Le capital social ne peut pas être négatif.'
+    )]
     private ?string $capitalSocial = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     private ?string $rcs = null;
 
     #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\Length(max: 100)]
     private ?string $villeRcs = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(max: 500)]
     private ?string $mentionTva = null;
 
     #[ORM\Column(length: 10)]
+    #[Assert\NotBlank(message: 'La devise est obligatoire.')]
+    #[Assert\Regex(
+        pattern: '/^[A-Z]{3}$/',
+        message: 'La devise doit être un code ISO composé de trois lettres, par exemple EUR.'
+    )]
     private ?string $devise = 'EUR';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
+    #[Assert\NotBlank(message: 'Le taux de TVA par défaut est obligatoire.')]
+    #[Assert\Range(
+        min: 0,
+        max: 100,
+        notInRangeMessage: 'Le taux de TVA doit être compris entre {{ min }} et {{ max }}.'
+    )]
     private ?string $tauxTvaDefaut = '20.00';
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank(message: 'Le préfixe des devis est obligatoire.')]
+    #[Assert\Length(max: 20)]
+    #[Assert\Regex(
+        pattern: '/^[A-Z0-9_-]+$/',
+        message: 'Le préfixe des devis ne peut contenir que des lettres majuscules, chiffres, tirets et underscores.'
+    )]
     private ?string $prefixeDevis = 'DV';
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank(message: 'Le préfixe des factures est obligatoire.')]
+    #[Assert\Length(max: 20)]
+    #[Assert\Regex(
+        pattern: '/^[A-Z0-9_-]+$/',
+        message: 'Le préfixe des factures ne peut contenir que des lettres majuscules, chiffres, tirets et underscores.'
+    )]
     private ?string $prefixeFacture = 'FAC';
 
     #[ORM\Column]

@@ -8,6 +8,7 @@ use App\Entity\Produit;
 use App\Entity\User;
 use App\Service\CalculTotauxService;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +27,7 @@ final class LigneFactureController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         CalculTotauxService $calculTotauxService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -88,8 +90,25 @@ final class LigneFactureController extends AbstractController
             number_format($remise, 2, '.', '')
         );
 
-
         $facture->addLigneFacture($ligneFacture);
+
+        $errors = $validator->validate($ligneFacture);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
 
         $entityManager->persist($ligneFacture);
 
@@ -143,6 +162,7 @@ final class LigneFactureController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         CalculTotauxService $calculTotauxService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         $facture = $ligneFacture->getFacture();
@@ -242,6 +262,24 @@ final class LigneFactureController extends AbstractController
                 $data['unite'] !== null
                     ? (string) $data['unite']
                     : null
+            );
+        }
+
+        $errors = $validator->validate($ligneFacture);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
             );
         }
 

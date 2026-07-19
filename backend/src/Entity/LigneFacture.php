@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\LigneFactureRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: LigneFactureRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -16,18 +17,37 @@ class LigneFacture
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'La quantité est obligatoire.')]
+    #[Assert\Positive(message: 'La quantité doit être supérieure à zéro.')]
     private ?string $quantite = '1.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le prix unitaire HT est obligatoire.')]
+    #[Assert\PositiveOrZero(
+        message: 'Le prix unitaire HT ne peut pas être négatif.'
+    )]
     private ?string $prixUnitaireHT = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
+    #[Assert\NotBlank(message: 'Le taux de TVA est obligatoire.')]
+    #[Assert\Range(
+        min: 0,
+        max: 100,
+        notInRangeMessage: 'Le taux de TVA doit être compris entre {{ min }} et {{ max }}.'
+    )]
     private ?string $tva = '20.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2, nullable: true)]
+    #[Assert\Range(
+        min: 0,
+        max: 100,
+        notInRangeMessage: 'La remise doit être comprise entre {{ min }} et {{ max }}.'
+    )]
     private ?string $remise = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank]
+    #[Assert\PositiveOrZero]
     private ?string $totalHT = '0.00';
 
     #[ORM\Column]
@@ -38,6 +58,7 @@ class LigneFacture
 
     #[ORM\ManyToOne(inversedBy: 'ligneFactures')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'La facture associée est obligatoire.')]
     private ?Facture $facture = null;
 
     #[ORM\ManyToOne(inversedBy: 'ligneFactures')]
@@ -45,18 +66,35 @@ class LigneFacture
     private ?Produit $produit = null;
 
     #[ORM\Column(length: 150)]
+    #[Assert\NotBlank(message: 'La désignation est obligatoire.')]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'La désignation ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $designation = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'La description ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $description = null;
 
     #[ORM\Column(length: 30, nullable: true)]
+    #[Assert\Length(
+        max: 30,
+        maxMessage: 'L’unité ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $unite = null;
-
+    
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank]
+    #[Assert\PositiveOrZero]
     private ?string $totalTVA = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank]
+    #[Assert\PositiveOrZero]
     private ?string $totalTTC = '0.00';
 
     public function getId(): ?int

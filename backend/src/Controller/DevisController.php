@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class DevisController extends AbstractController
 {
@@ -132,6 +133,7 @@ final class DevisController extends AbstractController
         NumerotationService $numerotationService,
         ActiviteService $activiteService,
         NotificationService $notificationService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -162,6 +164,24 @@ final class DevisController extends AbstractController
         $devis->setCommentaire($data['commentaire'] ?? null);
         $devis->setClient($client);
         $devis->setUser($user);
+
+        $errors = $validator->validate($devis);
+
+        if (count($errors) > 0) {
+
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json([
+                'errors' => $formattedErrors,
+            ], JsonResponse::HTTP_BAD_REQUEST);
+        }
 
         $entityManager->persist($devis);
         $activiteService->enregistrer(
@@ -270,6 +290,7 @@ final class DevisController extends AbstractController
         EntityManagerInterface $entityManager,
         ActiviteService $activiteService,
         NotificationService $notificationService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($devis->getUser() !== $user) {
@@ -297,15 +318,29 @@ final class DevisController extends AbstractController
         }
 
         if (array_key_exists('dateEmission', $data)) {
-            $devis->setDateEmission(
-                new \DateTimeImmutable((string) $data['dateEmission'])
-            );
+            try {
+                $devis->setDateEmission(
+                    new \DateTimeImmutable((string) $data['dateEmission'])
+                );
+            } catch (\Exception) {
+                return $this->json(
+                    ['message' => "Date d'émission invalide."],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
         }
 
         if (array_key_exists('dateValidite', $data)) {
-            $devis->setDateValidite(
-                new \DateTimeImmutable((string) $data['dateValidite'])
-            );
+            try {
+                $devis->setDateValidite(
+                    new \DateTimeImmutable((string) $data['dateValidite'])
+                );
+            } catch (\Exception) {
+                return $this->json(
+                    ['message' => 'Date de validité invalide.'],
+                    JsonResponse::HTTP_BAD_REQUEST
+                );
+            }
         }
         $ancienStatut = $devis->getStatut();
 
@@ -394,6 +429,24 @@ final class DevisController extends AbstractController
             );
         }
 
+        $errors = $validator->validate($devis);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
         $entityManager->flush();
 
         return $this->json([
@@ -429,6 +482,7 @@ final class DevisController extends AbstractController
         EntityManagerInterface $entityManager,
         NumerotationService $numerotationService,
         CalculTotauxService $calculTotauxService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($devis->getUser() !== $user) {
@@ -461,6 +515,24 @@ final class DevisController extends AbstractController
                     'message' =>
                     'Impossible de transformer un devis sans ligne.',
                 ],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $errors = $validator->validate($devis);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
                 JsonResponse::HTTP_BAD_REQUEST
             );
         }

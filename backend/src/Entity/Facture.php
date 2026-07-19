@@ -8,9 +8,17 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use App\Enum\StatutFacture;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
+
 
 #[ORM\Entity(repositoryClass: FactureRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[UniqueEntity(
+    fields: ['numero'],
+    message: 'Ce numéro de facture existe déjà.'
+)]
 class Facture
 {
     #[ORM\Id]
@@ -19,30 +27,48 @@ class Facture
     private ?int $id = null;
 
     #[ORM\Column(length: 30, unique: true)]
+    #[Assert\NotBlank(message: 'Le numéro de facture est obligatoire.')]
+    #[Assert\Length(
+        max: 30,
+        maxMessage: 'Le numéro ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $numero = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Assert\NotNull(message: 'La date d’émission est obligatoire.')]
     private ?\DateTimeImmutable $dateEmission = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $dateEmissionPrevue = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]
+    #[Assert\NotNull(message: 'La date d’échéance est obligatoire.')]
     private ?\DateTimeImmutable $dateEcheance = null;
 
     #[ORM\Column(length: 20, enumType: StatutFacture::class)]
+    #[Assert\NotNull(message: 'Le statut de la facture est obligatoire.')]
     private StatutFacture $statut = StatutFacture::BROUILLON;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank]
+    #[Assert\PositiveOrZero]
     private ?string $totalHT = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank]
+    #[Assert\PositiveOrZero]
     private ?string $totalTVA = '0.00';
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank]
+    #[Assert\PositiveOrZero]
     private ?string $totalTTC = '0.00';
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'Le commentaire ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $commentaire = null;
 
     #[ORM\Column(options: ['default' => false])]
@@ -52,6 +78,9 @@ class Facture
     private ?\DateTimeImmutable $derniereRelanceAt = null;
 
     #[ORM\Column(options: ['default' => 0])]
+    #[Assert\PositiveOrZero(
+        message: 'Le nombre de relances ne peut pas être négatif.'
+    )]
     private int $nombreRelances = 0;
 
     #[ORM\Column]
@@ -62,10 +91,12 @@ class Facture
 
     #[ORM\ManyToOne(inversedBy: 'factures')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Le client est obligatoire.')]
     private ?Client $client = null;
 
     #[ORM\ManyToOne(inversedBy: 'factures')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'L’utilisateur est obligatoire.')]
     private ?User $user = null;
 
     /**
@@ -77,6 +108,7 @@ class Facture
         cascade: ['persist', 'remove'],
         orphanRemoval: true
     )]
+    #[Assert\Valid]
     private Collection $ligneFactures;
 
     /**
@@ -293,6 +325,48 @@ class Facture
         $this->user = $user;
 
         return $this;
+    }
+
+    #[Assert\Callback]
+    public function validateFacture(
+        ExecutionContextInterface $context
+    ): void {
+        if (
+            $this->dateEmission !== null
+            && $this->dateEcheance !== null
+            && $this->dateEcheance < $this->dateEmission
+        ) {
+            $context
+                ->buildViolation(
+                    'La date d’échéance doit être postérieure ou égale à la date d’émission.'
+                )
+                ->atPath('dateEcheance')
+                ->addViolation();
+        }
+
+        if (
+            $this->statut === StatutFacture::PLANIFIEE
+            && $this->dateEmissionPrevue === null
+        ) {
+            $context
+                ->buildViolation(
+                    'Une facture planifiée doit posséder une date d’émission prévue.'
+                )
+                ->atPath('dateEmissionPrevue')
+                ->addViolation();
+        }
+
+        if (
+            $this->statut !== StatutFacture::PLANIFIEE
+            && $this->dateEmissionPrevue !== null
+        ) {
+            $context
+                ->buildViolation(
+                    'La date d’émission prévue est réservée aux factures planifiées.'
+                )
+                ->atPath('dateEmissionPrevue')
+                ->addViolation();
+        }
     }
 
     #[ORM\PrePersist]

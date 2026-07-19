@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ProduitRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -18,24 +19,62 @@ class Produit
     private ?int $id = null;
 
     #[ORM\Column(length: 150)]
+    #[Assert\NotBlank(message: 'Le nom du produit ou service est obligatoire.')]
+    #[Assert\Length(
+        max: 150,
+        maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $nom = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
+    #[Assert\Length(
+        max: 5000,
+        maxMessage: 'La description ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $description = null;
 
     #[ORM\Column(length: 20)]
+    #[Assert\NotBlank(message: 'Le type est obligatoire.')]
+    #[Assert\Choice(
+        choices: ['produit', 'service'],
+        message: 'Le type doit être produit ou service.'
+    )]
     private ?string $type = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank(message: 'La référence est obligatoire.')]
+    #[Assert\Length(
+        max: 50,
+        maxMessage: 'La référence ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    #[Assert\Regex(
+        pattern: '/^[A-Za-z0-9._\-\/]+$/',
+        message: 'La référence contient des caractères non autorisés.'
+    )]
     private ?string $reference = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2)]
+    #[Assert\NotBlank(message: 'Le prix HT est obligatoire.')]
+    #[Assert\Regex(
+        pattern: '/^\d{1,8}(\.\d{1,2})?$/',
+        message: 'Le prix HT doit être un montant positif avec au maximum 2 décimales.'
+    )]
     private ?string $prixHT = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 5, scale: 2)]
+    #[Assert\NotBlank(message: 'Le taux de TVA est obligatoire.')]
+    #[Assert\Range(
+        min: 0,
+        max: 100,
+        notInRangeMessage: 'Le taux de TVA doit être compris entre {{ min }} et {{ max }}.'
+    )]
     private ?string $tva = null;
 
     #[ORM\Column(length: 30, nullable: true)]
+    #[Assert\Length(
+        max: 30,
+        maxMessage: 'L’unité ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $unite = null;
 
     #[ORM\Column]
@@ -82,7 +121,6 @@ class Produit
     public function setNom(string $nom): static
     {
         $this->nom = $nom;
-
         return $this;
     }
 
@@ -94,7 +132,6 @@ class Produit
     public function setDescription(?string $description): static
     {
         $this->description = $description;
-
         return $this;
     }
 
@@ -106,7 +143,6 @@ class Produit
     public function setType(string $type): static
     {
         $this->type = $type;
-
         return $this;
     }
 
@@ -118,7 +154,6 @@ class Produit
     public function setReference(string $reference): static
     {
         $this->reference = $reference;
-
         return $this;
     }
 
@@ -130,7 +165,6 @@ class Produit
     public function setPrixHT(string $prixHT): static
     {
         $this->prixHT = $prixHT;
-
         return $this;
     }
 
@@ -142,7 +176,6 @@ class Produit
     public function setTva(string $tva): static
     {
         $this->tva = $tva;
-
         return $this;
     }
 
@@ -154,7 +187,6 @@ class Produit
     public function setUnite(?string $unite): static
     {
         $this->unite = $unite;
-
         return $this;
     }
 
@@ -166,7 +198,6 @@ class Produit
     public function setActif(bool $actif): static
     {
         $this->actif = $actif;
-
         return $this;
     }
 
@@ -178,7 +209,6 @@ class Produit
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
     }
 
@@ -190,7 +220,6 @@ class Produit
     public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
-
         return $this;
     }
 
@@ -202,15 +231,13 @@ class Produit
     public function setUser(?User $user): static
     {
         $this->user = $user;
-
         return $this;
     }
-    
+
     #[ORM\PrePersist]
     public function initializeTimestamps(): void
     {
         $now = new \DateTimeImmutable();
-
         $this->createdAt ??= $now;
         $this->updatedAt ??= $now;
     }
@@ -241,11 +268,11 @@ class Produit
 
     public function removeLigneFacture(LigneFacture $ligneFacture): static
     {
-        if ($this->ligneFactures->removeElement($ligneFacture)) {
-            // set the owning side to null (unless already changed)
-            if ($ligneFacture->getProduit() === $this) {
-                $ligneFacture->setProduit(null);
-            }
+        if (
+            $this->ligneFactures->removeElement($ligneFacture)
+            && $ligneFacture->getProduit() === $this
+        ) {
+            $ligneFacture->setProduit(null);
         }
 
         return $this;
@@ -271,11 +298,11 @@ class Produit
 
     public function removeLigneDevi(LigneDevis $ligneDevi): static
     {
-        if ($this->ligneDevis->removeElement($ligneDevi)) {
-            // set the owning side to null (unless already changed)
-            if ($ligneDevi->getProduit() === $this) {
-                $ligneDevi->setProduit(null);
-            }
+        if (
+            $this->ligneDevis->removeElement($ligneDevi)
+            && $ligneDevi->getProduit() === $this
+        ) {
+            $ligneDevi->setProduit(null);
         }
 
         return $this;

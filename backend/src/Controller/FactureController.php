@@ -14,6 +14,7 @@ use App\Repository\FactureRepository;
 use App\Entity\LigneFacture;
 use App\Service\ActiviteService;
 use App\Service\NotificationService;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -171,6 +172,7 @@ final class FactureController extends AbstractController
         NumerotationService $numerotationService,
         ActiviteService $activiteService,
         NotificationService $notificationService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
@@ -299,6 +301,24 @@ final class FactureController extends AbstractController
         $facture->setClient($client);
         $facture->setUser($user);
 
+        $errors = $validator->validate($facture);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
         $entityManager->persist($facture);
         $activiteService->enregistrer(
             user: $user,
@@ -387,6 +407,7 @@ final class FactureController extends AbstractController
         EntityManagerInterface $entityManager,
         ActiviteService $activiteService,
         NotificationService $notificationService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -401,6 +422,24 @@ final class FactureController extends AbstractController
         if ($clientEmail === '') {
             return $this->json(
                 ['message' => 'Le client ne possède aucune adresse e-mail.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        $errors = $validator->validate($facture);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
                 JsonResponse::HTTP_BAD_REQUEST
             );
         }
@@ -480,6 +519,7 @@ final class FactureController extends AbstractController
         Facture $facture,
         EntityManagerInterface $entityManager,
         NumerotationService $numerotationService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -577,6 +617,24 @@ final class FactureController extends AbstractController
             );
         }
 
+        $errors = $validator->validate($nouvelleFacture);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
         $entityManager->persist($nouvelleFacture);
         $entityManager->flush();
 
@@ -596,6 +654,7 @@ final class FactureController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         NotificationService $notificationService,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($facture->getUser() !== $user) {
@@ -782,6 +841,24 @@ final class FactureController extends AbstractController
                 $data['commentaire'] !== null
                     ? trim((string) $data['commentaire'])
                     : null
+            );
+        }
+
+        $errors = $validator->validate($facture);
+
+        if (count($errors) > 0) {
+            $formattedErrors = [];
+
+            foreach ($errors as $error) {
+                $formattedErrors[] = [
+                    'field' => $error->getPropertyPath(),
+                    'message' => $error->getMessage(),
+                ];
+            }
+
+            return $this->json(
+                ['errors' => $formattedErrors],
+                JsonResponse::HTTP_BAD_REQUEST
             );
         }
 

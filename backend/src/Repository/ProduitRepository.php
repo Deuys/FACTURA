@@ -36,14 +36,19 @@ class ProduitRepository extends ServiceEntityRepository
     }
 
     /**
-     * @return Produit[]
+     * @return array{
+     *     produits: Produit[],
+     *     total: int
+     * }
      */
     public function findForUserWithFilters(
         User $user,
         ?string $recherche = null,
         string $filtre = 'tous',
         string $tri = 'nom',
-        string $ordre = 'ASC'
+        string $ordre = 'ASC',
+        int $page = 1,
+        int $limit = 20
     ): array {
         $champTri = self::SORT_FIELDS[$tri]
             ?? self::SORT_FIELDS['nom'];
@@ -51,6 +56,9 @@ class ProduitRepository extends ServiceEntityRepository
         $ordre = strtoupper($ordre) === 'DESC'
             ? 'DESC'
             : 'ASC';
+
+        $page = max(1, $page);
+        $limit = max(1, min($limit, 100));
 
         $queryBuilder = $this
             ->createQueryBuilder('p')
@@ -60,15 +68,55 @@ class ProduitRepository extends ServiceEntityRepository
         $this->applySearch($queryBuilder, $recherche);
         $this->applyFilter($queryBuilder, $filtre);
 
-        $queryBuilder->orderBy($champTri, $ordre);
+        $countQueryBuilder = clone $queryBuilder;
+
+        $total = (int) $countQueryBuilder
+            ->select('COUNT(DISTINCT p.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $queryBuilder
+            ->orderBy($champTri, $ordre)
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
 
         if ($tri !== 'nom') {
             $queryBuilder->addOrderBy('p.nom', 'ASC');
         }
 
-        return $queryBuilder
+        /** @var Produit[] $produits */
+        $produits = $queryBuilder
             ->getQuery()
             ->getResult();
+
+        return [
+            'produits' => $produits,
+            'total' => $total,
+        ];
+    }
+
+    public function referenceExistsForUser(
+        User $user,
+        string $reference,
+        ?int $excludedProductId = null
+    ): bool {
+        $queryBuilder = $this
+            ->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->andWhere('p.user = :user')
+            ->andWhere('LOWER(p.reference) = :reference')
+            ->setParameter('user', $user)
+            ->setParameter('reference', mb_strtolower($reference));
+
+        if ($excludedProductId !== null) {
+            $queryBuilder
+                ->andWhere('p.id != :excludedProductId')
+                ->setParameter('excludedProductId', $excludedProductId);
+        }
+
+        return (int) $queryBuilder
+            ->getQuery()
+            ->getSingleScalarResult() > 0;
     }
 
     private function applySearch(
@@ -128,11 +176,7 @@ class ProduitRepository extends ServiceEntityRepository
 
     public function isFilterAllowed(string $filtre): bool
     {
-        return in_array(
-            $filtre,
-            self::ALLOWED_FILTERS,
-            true
-        );
+        return in_array($filtre, self::ALLOWED_FILTERS, true);
     }
 
     /**
