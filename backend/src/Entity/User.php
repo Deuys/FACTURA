@@ -6,12 +6,20 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[ORM\UniqueConstraint(
+    name: 'UNIQ_IDENTIFIER_EMAIL',
+    fields: ['email']
+)]
+#[UniqueEntity(
+    fields: ['email'],
+    message: 'Cette adresse e-mail est déjà utilisée.'
+)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -20,42 +28,67 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?int $id = null;
 
     #[ORM\Column(length: 180)]
+    #[Assert\NotBlank(
+        message: 'L’adresse e-mail est obligatoire.'
+    )]
+    #[Assert\Email(
+        message: 'L’adresse e-mail est invalide.'
+    )]
+    #[Assert\Length(
+        max: 180,
+        maxMessage: 'L’adresse e-mail ne peut pas dépasser {{ limit }} caractères.'
+    )]
     private ?string $email = null;
 
     /**
-     * @var list<string> The user roles
+     * @var list<string>
      */
     #[ORM\Column]
     private array $roles = [];
 
     /**
-     * @var string The hashed password
+     * Mot de passe hashé.
      */
-    #[ORM\Column]
+    #[ORM\Column(length: 255)]
+    #[Assert\NotBlank(
+        message: 'Le mot de passe est obligatoire.'
+    )]
     private ?string $password = null;
 
     /**
      * @var Collection<int, Client>
      */
-    #[ORM\OneToMany(targetEntity: Client::class, mappedBy: 'user')]
+    #[ORM\OneToMany(
+        targetEntity: Client::class,
+        mappedBy: 'user'
+    )]
     private Collection $clients;
 
     /**
      * @var Collection<int, Produit>
      */
-    #[ORM\OneToMany(targetEntity: Produit::class, mappedBy: 'user')]
+    #[ORM\OneToMany(
+        targetEntity: Produit::class,
+        mappedBy: 'user'
+    )]
     private Collection $produits;
 
     /**
      * @var Collection<int, Facture>
      */
-    #[ORM\OneToMany(targetEntity: Facture::class, mappedBy: 'user')]
+    #[ORM\OneToMany(
+        targetEntity: Facture::class,
+        mappedBy: 'user'
+    )]
     private Collection $factures;
 
     /**
      * @var Collection<int, Devis>
      */
-    #[ORM\OneToMany(targetEntity: Devis::class, mappedBy: 'user')]
+    #[ORM\OneToMany(
+        targetEntity: Devis::class,
+        mappedBy: 'user'
+    )]
     private Collection $devis;
 
     /**
@@ -78,7 +111,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     )]
     private Collection $notifications;
 
-    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(
+        mappedBy: 'user',
+        cascade: ['persist', 'remove']
+    )]
     private ?Entreprise $entreprise = null;
 
     public function __construct()
@@ -103,7 +139,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setEmail(string $email): static
     {
-        $this->email = $email;
+        $this->email = mb_strtolower(trim($email));
 
         return $this;
     }
@@ -113,12 +149,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return (string) $this->email;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getRoles(): array
     {
         $roles = $this->roles;
         $roles[] = 'ROLE_USER';
 
-        return array_unique($roles);
+        return array_values(array_unique($roles));
     }
 
     /**
@@ -126,7 +165,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function setRoles(array $roles): static
     {
-        $this->roles = $roles;
+        $this->roles = array_values(array_unique($roles));
 
         return $this;
     }
@@ -146,7 +185,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __serialize(): array
     {
         $data = (array) $this;
-        $data["\0" . self::class . "\0password"] = hash('crc32c', $this->password);
+
+        $data["\0" . self::class . "\0password"] = hash(
+            'crc32c',
+            (string) $this->password
+        );
 
         return $data;
     }
@@ -174,10 +217,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function removeClient(Client $client): static
     {
-        if ($this->clients->removeElement($client)) {
-            if ($client->getUser() === $this) {
-                $client->setUser(null);
-            }
+        if (
+            $this->clients->removeElement($client)
+            && $client->getUser() === $this
+        ) {
+            $client->setUser(null);
         }
 
         return $this;
@@ -203,10 +247,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function removeProduit(Produit $produit): static
     {
-        if ($this->produits->removeElement($produit)) {
-            if ($produit->getUser() === $this) {
-                $produit->setUser(null);
-            }
+        if (
+            $this->produits->removeElement($produit)
+            && $produit->getUser() === $this
+        ) {
+            $produit->setUser(null);
         }
 
         return $this;
@@ -232,10 +277,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function removeFacture(Facture $facture): static
     {
-        if ($this->factures->removeElement($facture)) {
-            if ($facture->getUser() === $this) {
-                $facture->setUser(null);
-            }
+        if (
+            $this->factures->removeElement($facture)
+            && $facture->getUser() === $this
+        ) {
+            $facture->setUser(null);
         }
 
         return $this;
@@ -249,22 +295,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->devis;
     }
 
-    public function addDevi(Devis $devi): static
+    public function addDevis(Devis $devis): static
     {
-        if (!$this->devis->contains($devi)) {
-            $this->devis->add($devi);
-            $devi->setUser($this);
+        if (!$this->devis->contains($devis)) {
+            $this->devis->add($devis);
+            $devis->setUser($this);
         }
 
         return $this;
     }
 
-    public function removeDevi(Devis $devi): static
+    public function removeDevis(Devis $devis): static
     {
-        if ($this->devis->removeElement($devi)) {
-            if ($devi->getUser() === $this) {
-                $devi->setUser(null);
-            }
+        if (
+            $this->devis->removeElement($devis)
+            && $devis->getUser() === $this
+        ) {
+            $devis->setUser(null);
         }
 
         return $this;
@@ -279,7 +326,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->entreprise = $entreprise;
 
-        if ($entreprise !== null && $entreprise->getUser() !== $this) {
+        if (
+            $entreprise !== null
+            && $entreprise->getUser() !== $this
+        ) {
             $entreprise->setUser($this);
         }
 
@@ -306,10 +356,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function removeActivite(Activite $activite): static
     {
-        if ($this->activites->removeElement($activite)) {
-            if ($activite->getUser() === $this) {
-                $activite->setUser(null);
-            }
+        if (
+            $this->activites->removeElement($activite)
+            && $activite->getUser() === $this
+        ) {
+            $activite->setUser(null);
         }
 
         return $this;
@@ -335,10 +386,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function removeNotification(Notification $notification): static
     {
-        if ($this->notifications->removeElement($notification)) {
-            if ($notification->getUser() === $this) {
-                $notification->setUser(null);
-            }
+        if (
+            $this->notifications->removeElement($notification)
+            && $notification->getUser() === $this
+        ) {
+            $notification->setUser(null);
         }
 
         return $this;

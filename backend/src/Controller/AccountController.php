@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -12,6 +13,8 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/account')]
 #[IsGranted('ROLE_USER')]
@@ -33,45 +36,72 @@ final class AccountController extends AbstractController
     public function update(
         Request $request,
         EntityManagerInterface $entityManager,
+        ValidatorInterface $validator,
         #[CurrentUser] User $user
     ): JsonResponse {
         $data = $request->toArray();
 
-        if (!array_key_exists('email', $data)) {
-            return $this->json(
-                ['message' => 'L’adresse e-mail est obligatoire.'],
-                Response::HTTP_BAD_REQUEST
-            );
-        }
-
-        $email = mb_strtolower(
-            trim((string) $data['email'])
-        );
-
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->json(
-                ['message' => 'L’adresse e-mail est invalide.'],
-                Response::HTTP_BAD_REQUEST
-            );
-        }
-
-        $existingUser = $entityManager
-            ->getRepository(User::class)
-            ->findOneBy(['email' => $email]);
-
         if (
-            $existingUser !== null
-            && $existingUser->getId() !== $user->getId()
+            !array_key_exists('email', $data)
+            || !is_string($data['email'])
         ) {
             return $this->json(
-                ['message' => 'Cette adresse e-mail est déjà utilisée.'],
+                [
+                    'errors' => [
+                        [
+                            'field' => 'email',
+                            'message' => 'L’adresse e-mail est obligatoire.',
+                        ],
+                    ],
+                ],
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        /*
+         * setEmail() normalise déjà l’adresse :
+         * - suppression des espaces au début et à la fin ;
+         * - conversion en minuscules.
+         */
+        $user->setEmail($data['email']);
+
+        /*
+         * Exécute les contraintes présentes dans User.php :
+         * - NotBlank ;
+         * - Email ;
+         * - Length ;
+         * - UniqueEntity.
+         */
+        $errors = $validator->validate($user);
+
+        if (count($errors) > 0) {
+            return $this->json(
+                [
+                    'errors' => $this->formatErrors($errors),
+                ],
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        try {
+            $entityManager->flush();
+        } catch (UniqueConstraintViolationException) {
+            /*
+             * Protection complémentaire contre le cas rare où deux
+             * requêtes utilisent simultanément la même adresse.
+             */
+            return $this->json(
+                [
+                    'errors' => [
+                        [
+                            'field' => 'email',
+                            'message' => 'Cette adresse e-mail est déjà utilisée.',
+                        ],
+                    ],
+                ],
                 Response::HTTP_CONFLICT
             );
         }
-
-        $user->setEmail($email);
-
-        $entityManager->flush();
 
         return $this->json([
             'message' => 'Compte modifié avec succès.',
@@ -96,25 +126,36 @@ final class AccountController extends AbstractController
     ): JsonResponse {
         $data = $request->toArray();
 
-        $currentPassword = (string) (
-            $data['currentPassword'] ?? ''
-        );
-
-        $newPassword = (string) (
-            $data['newPassword'] ?? ''
-        );
-
-        $newPasswordConfirmation = (string) (
-            $data['newPasswordConfirmation'] ?? ''
-        );
+        $currentPassword = $data['currentPassword'] ?? null;
+        $newPassword = $data['newPassword'] ?? null;
+        $newPasswordConfirmation =
+            $data['newPasswordConfirmation'] ?? null;
 
         if (
-            $currentPassword === ''
+            !is_string($currentPassword)
+            || !is_string($newPassword)
+            || !is_string($newPasswordConfirmation)
+            || $currentPassword === ''
             || $newPassword === ''
             || $newPasswordConfirmation === ''
         ) {
             return $this->json(
                 ['message' => 'Tous les champs sont obligatoires.'],
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        /*
+         * Limite défensive contre l’envoi de mots de passe
+         * anormalement volumineux au système de hashage.
+         */
+        if (
+            mb_strlen($currentPassword) > 4096
+            || mb_strlen($newPassword) > 4096
+            || mb_strlen($newPasswordConfirmation) > 4096
+        ) {
+            return $this->json(
+                ['message' => 'La valeur fournie est trop longue.'],
                 Response::HTTP_BAD_REQUEST
             );
         }
@@ -166,17 +207,35 @@ final class AccountController extends AbstractController
             );
         }
 
-        $user->setPassword(
-            $passwordHasher->hashPassword(
-                $user,
-                $newPassword
-            )
+        $hashedPassword = $passwordHasher->hashPassword(
+            $user,
+            $newPassword
         );
+
+        $user->setPassword($hashedPassword);
 
         $entityManager->flush();
 
         return $this->json([
             'message' => 'Mot de passe modifié avec succès.',
         ]);
+    }
+
+    /**
+     * @return list<array{field: string, message: string}>
+     */
+    private function formatErrors(
+        ConstraintViolationListInterface $errors
+    ): array {
+        $formattedErrors = [];
+
+        foreach ($errors as $error) {
+            $formattedErrors[] = [
+                'field' => $error->getPropertyPath(),
+                'message' => $error->getMessage(),
+            ];
+        }
+
+        return $formattedErrors;
     }
 }
