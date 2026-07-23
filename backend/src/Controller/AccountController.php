@@ -15,6 +15,7 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[Route('/api/account')]
 #[IsGranted('ROLE_USER')]
@@ -75,11 +76,21 @@ final class AccountController extends AbstractController
         $errors = $validator->validate($user);
 
         if (count($errors) > 0) {
+            $statusCode = Response::HTTP_BAD_REQUEST;
+
+            foreach ($errors as $error) {
+                if ($error->getCode() === UniqueEntity::NOT_UNIQUE_ERROR) {
+                    $statusCode = Response::HTTP_CONFLICT;
+
+                    break;
+                }
+            }
+
             return $this->json(
                 [
                     'errors' => $this->formatErrors($errors),
                 ],
-                Response::HTTP_BAD_REQUEST
+                $statusCode
             );
         }
 
