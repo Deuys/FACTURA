@@ -1,0 +1,59 @@
+<section class="login-page">
+  <div class="login-card">
+    <header class="login-header">
+      <p class="login-brand">FACTURA</p>
+      <h1>Connexion</h1>
+      <p>Accède à ton espace de gestion.</p>
+    </header>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+      <div class="form-field">
+        <label for="email">Adresse e-mail</label>
+
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="nom@entreprise.fr"
+        />
+
+        @if (loginForm.controls.email.invalid && loginForm.controls.email.touched) {
+          <p class="field-error">
+            @if (loginForm.controls.email.hasError('required')) {
+              L’adresse e-mail est obligatoire.
+            } @else if (loginForm.controls.email.hasError('email')) {
+              L’adresse e-mail n’est pas valide.
+            }
+          </p>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="password">Mot de passe</label>
+
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          placeholder="12 caractères minimum"
+        />
+
+        @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
+          <p class="field-error">
+            @if (loginForm.controls.password.hasError('required')) {
+              Le mot de passe est obligatoire.
+            } @else if (loginForm.controls.password.hasError('minlength')) {
+              Le mot de passe doit contenir au moins 12 caractères.
+            }
+          </p>
+        }
+      </div>
+
+      <button type="submit" [disabled]="loginForm.invalid || isLoading()">
+        {{ isLoading() ? 'Connexion en cours...' : 'Se connecter' }}
+      </button>
+    </form>
+  </div>
+</section>

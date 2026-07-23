@@ -1,1 +1,172 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Couleurs principales */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+
+  --color-text-primary: #111827;
+  --color-text-secondary: #555555;
+  --color-text-neutral: #6b7280;
+
+  /* Couleurs sémantiques */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+  --color-danger: #ef4444;
+
+  /* Accents KPI */
+  --color-accent-fuchsia: #d946ef;
+  --color-accent-violet: #844fdd;
+  --color-accent-lime: #84cc16;
+
+  /* Badges avec opacité */
+  --badge-success-background: rgb(34 197 94 / 20%);
+  --badge-warning-background: rgb(245 158 11 / 20%);
+  --badge-info-background: rgb(59 130 246 / 20%);
+  --badge-danger-background: rgb(239 68 68 / 30%);
+  --badge-draft-background: rgb(59 130 246 / 10%);
+
+  --badge-fuchsia-background: rgb(217 70 239 / 20%);
+  --badge-violet-background: rgb(132 79 221 / 20%);
+  --badge-lime-background: rgb(132 204 22 / 20%);
+
+  /* Dimensions */
+  --sidebar-width: 260px;
+  --header-height: 72px;
+
+  /* Arrondis */
+  --radius-small: 3.5px;
+  --radius-medium: 6px;
+  --radius-large: 10px;
+
+  /* Ombres */
+  --shadow-button:
+    0 2px 4px rgb(0 0 0 / 14%), 0 3px 4px rgb(0 0 0 / 12%), 0 1px 5px rgb(0 0 0 / 20%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  color: var(--color-text-primary);
+  background: var(--color-background);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Bouton principal réutilisable */
+.button-primary {
+  min-height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: var(--radius-medium);
+
+  color: #ffffff;
+  background: var(--color-primary);
+
+  box-shadow: var(--shadow-button);
+
+  font-weight: 600;
+
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.button-primary:disabled {
+  opacity: 0.6;
+}
+
+.button-primary img {
+  width: 16px;
+  height: 16px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+/* Bouton d’action avec icône */
+.button-icon {
+  width: 21px;
+  height: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  color: var(--color-text-primary);
+  background: transparent;
+}
+
+/* Badges d’état réutilisables */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-payee {
+  color: var(--color-success);
+  background: var(--badge-success-background);
+}
+
+.badge-en-attente {
+  color: var(--color-warning);
+  background: var(--badge-warning-background);
+}
+
+.badge-envoyee {
+  color: var(--color-info);
+  background: var(--badge-info-background);
+}
+
+.badge-en-retard {
+  color: var(--color-danger);
+  background: var(--badge-danger-background);
+}
+
+.badge-brouillon {
+  color: rgb(85 85 85 / 75%);
+  background: var(--badge-draft-background);
+}

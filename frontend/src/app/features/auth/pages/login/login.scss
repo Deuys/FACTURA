@@ -1,0 +1,5 @@
+button::before,
+button::after {
+  display: none !important;
+  content: none !important;
+}

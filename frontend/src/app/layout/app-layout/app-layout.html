@@ -1,0 +1,87 @@
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">F</div>
+      <h2>FACTURA</h2>
+    </div>
+
+    <nav>
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        <img src="/icons/dashboard.svg" alt="" />
+
+        <span>Tableau de bord</span>
+      </a>
+
+      <h4>Gestion</h4>
+
+      <a routerLink="/clients" routerLinkActive="active"> Clients </a>
+
+      <a routerLink="/produits" routerLinkActive="active"> Produits & Services </a>
+
+      <h4>Facturation</h4>
+
+      <a routerLink="/devis" routerLinkActive="active"> Devis </a>
+
+      <a routerLink="/factures" routerLinkActive="active"> Factures </a>
+
+      <a routerLink="/paiements" routerLinkActive="active"> Paiements </a>
+
+      <h4>Configuration</h4>
+
+      <a routerLink="/parametres" routerLinkActive="active"> Paramètres </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button type="button" class="sidebar-link">Mon compte</button>
+
+      <button type="button" class="sidebar-link" (click)="logout()">Déconnexion</button>
+
+      <div class="user-profile">
+        <div class="user-avatar">S</div>
+
+        <div>
+          <strong>Said A.</strong>
+          <span>Administrateur</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="header">
+      <div class="header-left">
+        <h1>Dashboard</h1>
+
+        <label class="search-field">
+          <span aria-hidden="true">⌕</span>
+
+          <input type="search" placeholder="Rechercher..." aria-label="Rechercher" />
+        </label>
+      </div>
+
+      <div class="header-actions">
+        <select aria-label="Période du tableau de bord">
+          <option>Juin 2026</option>
+        </select>
+
+        <button type="button" class="button-primary">
+          <img src="/icons/plus.svg" alt="" width="16" height="16" />
+
+          <span>Nouvelle facture</span>
+        </button>
+
+        <button type="button" class="notification-button" aria-label="Notifications">
+          <img src="/icons/bell.svg" alt="" width="18" height="18" />
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
