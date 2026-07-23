@@ -286,43 +286,11 @@ final class PaiementController extends AbstractController
 
         $entityManager->persist($paiement);
 
-        $ancienStatutFacture = $facture->getStatut();
-
-        $this->mettreAJourStatutFacture($facture);
-
-        $nouveauStatutFacture = $facture->getStatut();
-
-        if (
-            $ancienStatutFacture !== $nouveauStatutFacture
-            && $nouveauStatutFacture === StatutFacture::PARTIELLEMENT_PAYEE
-        ) {
-            $notificationService->creer(
-                user: $user,
-                type: 'facture_partiellement_payee',
-                titre: 'Facture partiellement payée',
-                message: sprintf(
-                    'La facture %s a été partiellement payée.',
-                    $facture->getNumero()
-                ),
-                url: null
-            );
-        }
-
-        if (
-            $ancienStatutFacture !== $nouveauStatutFacture
-            && $nouveauStatutFacture === StatutFacture::PAYEE
-        ) {
-            $notificationService->creer(
-                user: $user,
-                type: 'facture_payee',
-                titre: 'Facture payée',
-                message: sprintf(
-                    'La facture %s a été entièrement payée.',
-                    $facture->getNumero()
-                ),
-                url: null
-            );
-        }
+        $this->mettreAJourStatutFactureEtNotifier(
+            facture: $facture,
+            user: $user,
+            notificationService: $notificationService
+        );
 
         $activiteService->enregistrer(
             user: $user,
@@ -399,6 +367,7 @@ final class PaiementController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         ValidatorInterface $validator,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $facture = $paiement->getFacture();
@@ -523,7 +492,11 @@ final class PaiementController extends AbstractController
             );
         }
 
-        $this->mettreAJourStatutFacture($facture);
+        $this->mettreAJourStatutFactureEtNotifier(
+            facture: $facture,
+            user: $user,
+            notificationService: $notificationService
+        );
 
         $entityManager->flush();
 
@@ -543,6 +516,7 @@ final class PaiementController extends AbstractController
     public function delete(
         Paiement $paiement,
         EntityManagerInterface $entityManager,
+        NotificationService $notificationService,
         #[CurrentUser] User $user
     ): JsonResponse {
         $facture = $paiement->getFacture();
@@ -558,7 +532,11 @@ final class PaiementController extends AbstractController
 
         $entityManager->remove($paiement);
 
-        $this->mettreAJourStatutFacture($facture);
+        $this->mettreAJourStatutFactureEtNotifier(
+            facture: $facture,
+            user: $user,
+            notificationService: $notificationService
+        );
 
         $entityManager->flush();
 
@@ -637,6 +615,50 @@ final class PaiementController extends AbstractController
         ) {
             $facture->setStatut(
                 StatutFacture::EN_ATTENTE
+            );
+        }
+    }
+
+    private function mettreAJourStatutFactureEtNotifier(
+        Facture $facture,
+        User $user,
+        NotificationService $notificationService
+    ): void {
+        $ancienStatut = $facture->getStatut();
+
+        $this->mettreAJourStatutFacture($facture);
+
+        $nouveauStatut = $facture->getStatut();
+
+        if ($ancienStatut === $nouveauStatut) {
+            return;
+        }
+
+        if ($nouveauStatut === StatutFacture::PARTIELLEMENT_PAYEE) {
+            $notificationService->creer(
+                user: $user,
+                type: 'facture_partiellement_payee',
+                titre: 'Facture partiellement payée',
+                message: sprintf(
+                    'La facture %s a été partiellement payée.',
+                    $facture->getNumero()
+                ),
+                url: null
+            );
+
+            return;
+        }
+
+        if ($nouveauStatut === StatutFacture::PAYEE) {
+            $notificationService->creer(
+                user: $user,
+                type: 'facture_payee',
+                titre: 'Facture payée',
+                message: sprintf(
+                    'La facture %s a été entièrement payée.',
+                    $facture->getNumero()
+                ),
+                url: null
             );
         }
     }
