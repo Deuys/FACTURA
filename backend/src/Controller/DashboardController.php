@@ -14,25 +14,40 @@ final class DashboardController extends AbstractController
 {
     #[Route('/api/dashboard', name: 'api_dashboard', methods: ['GET'])]
     public function index(
+        Request $request,
         DashboardService $dashboardService,
         #[CurrentUser] User $user
     ): JsonResponse {
-        return $this->json(
-            $dashboardService->getDashboard($user)
+        $annee = $request->query->getInt(
+            'annee',
+            (int) date('Y')
         );
-    }
 
-    #[Route(
-        '/api/dashboard/clients',
-        name: 'api_dashboard_clients',
-        methods: ['GET']
-    )]
-    public function clients(
-        DashboardService $dashboardService,
-        #[CurrentUser] User $user
-    ): JsonResponse {
+        $mois = $request->query->getInt(
+            'mois',
+            (int) date('n')
+        );
+
+        if ($annee < 2000 || $annee > 2100) {
+            return $this->json(
+                ['message' => 'Année invalide.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if ($mois < 1 || $mois > 12) {
+            return $this->json(
+                ['message' => 'Mois invalide.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
         return $this->json(
-            $dashboardService->getClientsDashboard($user)
+            $dashboardService->getDashboard(
+                $user,
+                $annee,
+                $mois
+            )
         );
     }
 
@@ -139,7 +154,7 @@ final class DashboardController extends AbstractController
         name: 'api_dashboard_evolution_chiffre_affaires',
         methods: ['GET']
     )]
-    
+
     public function evolutionChiffreAffaires(
         Request $request,
         DashboardService $dashboardService,

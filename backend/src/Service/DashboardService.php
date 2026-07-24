@@ -22,49 +22,87 @@ final class DashboardService
         private readonly ActiviteRepository $activiteRepository
     ) {}
 
-    public function getDashboard(User $user): array
-    {
+    public function getDashboard(
+        User $user,
+        int $annee,
+        int $mois
+    ): array {
+        $debutPeriode = new \DateTimeImmutable(
+            sprintf('%04d-%02d-01 00:00:00', $annee, $mois)
+        );
+
+        $finPeriode = $debutPeriode->modify('+1 month');
+
         $factureRepository = $this->entityManager
             ->getRepository(Facture::class);
 
-        $facturesPayees = $factureRepository->count([
-            'user' => $user,
-            'statut' => StatutFacture::PAYEE,
-        ]);
+        $facturesPayees = (int) $factureRepository
+            ->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->andWhere('f.user = :user')
+            ->andWhere('f.statut = :statut')
+            ->andWhere('f.dateEmission >= :debutPeriode')
+            ->andWhere('f.dateEmission < :finPeriode')
+            ->setParameter('user', $user)
+            ->setParameter('statut', StatutFacture::PAYEE)
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
+            ->getQuery()
+            ->getSingleScalarResult();
 
-        $facturesEnAttente = $factureRepository->count([
-            'user' => $user,
-            'statut' => StatutFacture::EN_ATTENTE,
-        ]);
+        $facturesEnAttente = (int) $factureRepository
+            ->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->andWhere('f.user = :user')
+            ->andWhere('f.statut = :statut')
+            ->andWhere('f.dateEmission >= :debutPeriode')
+            ->andWhere('f.dateEmission < :finPeriode')
+            ->setParameter('user', $user)
+            ->setParameter('statut', StatutFacture::EN_ATTENTE)
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
+            ->getQuery()
+            ->getSingleScalarResult();
 
-        $facturesEnRetard = $factureRepository->count([
-            'user' => $user,
-            'statut' => StatutFacture::EN_RETARD,
-        ]);
+        $facturesEnRetard = (int) $factureRepository
+            ->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->andWhere('f.user = :user')
+            ->andWhere('f.statut = :statut')
+            ->andWhere('f.dateEmission >= :debutPeriode')
+            ->andWhere('f.dateEmission < :finPeriode')
+            ->setParameter('user', $user)
+            ->setParameter('statut', StatutFacture::EN_RETARD)
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
+            ->getQuery()
+            ->getSingleScalarResult();
 
-        $devisEnAttente = $this->entityManager
+        $devisEnAttente = (int) $this->entityManager
             ->getRepository(Devis::class)
-            ->count([
-                'user' => $user,
-                'statut' => StatutDevis::EN_ATTENTE,
-            ]);
-
-        $debutDuMois = new \DateTimeImmutable(
-            'first day of this month 00:00:00'
-        );
-
-        $debutMoisSuivant = $debutDuMois->modify('+1 month');
+            ->createQueryBuilder('d')
+            ->select('COUNT(d.id)')
+            ->andWhere('d.user = :user')
+            ->andWhere('d.statut = :statut')
+            ->andWhere('d.dateEmission >= :debutPeriode')
+            ->andWhere('d.dateEmission < :finPeriode')
+            ->setParameter('user', $user)
+            ->setParameter('statut', StatutDevis::EN_ATTENTE)
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
+            ->getQuery()
+            ->getSingleScalarResult();
 
         $nouveauxClients = (int) $this->entityManager
             ->getRepository(Client::class)
             ->createQueryBuilder('c')
             ->select('COUNT(c.id)')
             ->andWhere('c.user = :user')
-            ->andWhere('c.createdAt >= :debutDuMois')
-            ->andWhere('c.createdAt < :debutMoisSuivant')
+            ->andWhere('c.createdAt >= :debutPeriode')
+            ->andWhere('c.createdAt < :finPeriode')
             ->setParameter('user', $user)
-            ->setParameter('debutDuMois', $debutDuMois)
-            ->setParameter('debutMoisSuivant', $debutMoisSuivant)
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -75,8 +113,12 @@ final class DashboardService
             ->innerJoin('p.facture', 'f')
             ->andWhere('f.user = :user')
             ->andWhere('p.statut = :statut')
+            ->andWhere('p.datePaiement >= :debutPeriode')
+            ->andWhere('p.datePaiement < :finPeriode')
             ->setParameter('user', $user)
             ->setParameter('statut', StatutPaiement::CONFIRME)
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -84,6 +126,7 @@ final class DashboardService
             StatutFacture::EN_ATTENTE,
             StatutFacture::ENVOYEE,
             StatutFacture::EN_RETARD,
+            StatutFacture::PARTIELLEMENT_PAYEE,
         ];
 
         $totalFacturesAEncaisser = (float) $factureRepository
@@ -91,8 +134,12 @@ final class DashboardService
             ->select('COALESCE(SUM(f.totalTTC), 0)')
             ->andWhere('f.user = :user')
             ->andWhere('f.statut IN (:statuts)')
+            ->andWhere('f.dateEmission >= :debutPeriode')
+            ->andWhere('f.dateEmission < :finPeriode')
             ->setParameter('user', $user)
             ->setParameter('statuts', $statutsAEncaisser)
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -104,12 +151,16 @@ final class DashboardService
             ->andWhere('f.user = :user')
             ->andWhere('f.statut IN (:statuts)')
             ->andWhere('p.statut = :statutPaiement')
+            ->andWhere('f.dateEmission >= :debutPeriode')
+            ->andWhere('f.dateEmission < :finPeriode')
             ->setParameter('user', $user)
             ->setParameter('statuts', $statutsAEncaisser)
             ->setParameter(
                 'statutPaiement',
                 StatutPaiement::CONFIRME
             )
+            ->setParameter('debutPeriode', $debutPeriode)
+            ->setParameter('finPeriode', $finPeriode)
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -119,6 +170,14 @@ final class DashboardService
         );
 
         return [
+            'periode' => [
+                'annee' => $annee,
+                'mois' => $mois,
+                'dateDebut' => $debutPeriode->format('Y-m-d'),
+                'dateFin' => $finPeriode
+                    ->modify('-1 day')
+                    ->format('Y-m-d'),
+            ],
             'facturesPayees' => $facturesPayees,
             'facturesEnAttente' => $facturesEnAttente,
             'facturesEnRetard' => $facturesEnRetard,
@@ -138,7 +197,6 @@ final class DashboardService
             'nouveauxClients' => $nouveauxClients,
         ];
     }
-
     public function getClientsDashboard(User $user): array
     {
         /** @var Client[] $clients */

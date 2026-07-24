@@ -12,49 +12,89 @@
         [routerLinkActiveOptions]="{ exact: true }"
       >
         <img src="/icons/dashboard.svg" alt="" />
-
         <span>Tableau de bord</span>
       </a>
 
       <h4>Gestion</h4>
 
-      <a routerLink="/clients" routerLinkActive="active"> Clients </a>
+      <a routerLink="/clients" routerLinkActive="active">
+        <img src="/icons/user.svg" alt="" />
+        <span>Clients</span>
+      </a>
 
-      <a routerLink="/produits" routerLinkActive="active"> Produits & Services </a>
+      <a routerLink="/produits" routerLinkActive="active">
+        <img src="/icons/package.svg" alt="" />
+        <span>Produits et services</span>
+      </a>
 
       <h4>Facturation</h4>
 
-      <a routerLink="/devis" routerLinkActive="active"> Devis </a>
+      <a routerLink="/devis" routerLinkActive="active">
+        <img src="/icons/file-text.svg" alt="" />
+        <span>Devis</span>
+      </a>
 
-      <a routerLink="/factures" routerLinkActive="active"> Factures </a>
+      <a routerLink="/factures" routerLinkActive="active">
+        <img src="/icons/receipt.svg" alt="" />
+        <span>Factures</span>
+      </a>
 
-      <a routerLink="/paiements" routerLinkActive="active"> Paiements </a>
+      <a routerLink="/paiements" routerLinkActive="active">
+        <img src="/icons/wallet.svg" alt="" />
+        <span>Paiements</span>
+      </a>
 
       <h4>Configuration</h4>
 
-      <a routerLink="/parametres" routerLinkActive="active"> Paramètres </a>
+      <a routerLink="/parametres" routerLinkActive="active">
+        <img src="/icons/settings.svg" alt="" />
+        <span>Paramètres</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
-      <button type="button" class="sidebar-link">Mon compte</button>
+      @if (userMenuOpen()) {
+        <div class="user-menu">
+          <button type="button">Mon compte</button>
 
-      <button type="button" class="sidebar-link" (click)="logout()">Déconnexion</button>
-
-      <div class="user-profile">
-        <div class="user-avatar">S</div>
-
-        <div>
-          <strong>Said A.</strong>
-          <span>Administrateur</span>
+          <button type="button" (click)="logout()">Déconnexion</button>
         </div>
-      </div>
+      }
+
+      <button
+        type="button"
+        class="user-profile"
+        [attr.aria-expanded]="userMenuOpen()"
+        aria-label="Ouvrir le menu utilisateur"
+        (click)="toggleUserMenu()"
+      >
+        @if (currentUser()) {
+          <div class="user-avatar">
+            {{ userInitials() }}
+          </div>
+
+          <div class="user-info">
+            <strong>{{ displayName() }}</strong>
+            <span>{{ roleLabel() }}</span>
+          </div>
+        } @else {
+          <div class="user-avatar user-avatar-loading"></div>
+
+          <div class="user-info">
+            <strong>Chargement...</strong>
+            <span>Compte utilisateur</span>
+          </div>
+        }
+
+        <img class="user-chevron" src="/icons/chevron-down.svg" alt="" />
+      </button>
     </div>
   </aside>
 
   <div class="main-content">
     <header class="header">
       <div class="header-left">
-        <h1>Dashboard</h1>
+        <h1>Tableau de bord</h1>
 
         <label class="search-field">
           <span aria-hidden="true">⌕</span>
@@ -64,9 +104,37 @@
       </div>
 
       <div class="header-actions">
-        <select aria-label="Période du tableau de bord">
-          <option>Juin 2026</option>
-        </select>
+        <div class="period-dropdown">
+          <button
+            type="button"
+            class="period-trigger"
+            [attr.aria-expanded]="periodMenuOpen()"
+            aria-haspopup="listbox"
+            aria-label="Choisir la période du tableau de bord"
+            (click)="togglePeriodMenu()"
+          >
+            <span>{{ selectedPeriodLabel() }}</span>
+
+            <img src="/icons/chevron-down.svg" alt="" class="period-chevron" />
+          </button>
+
+          @if (periodMenuOpen()) {
+            <div class="period-menu" role="listbox" aria-label="Période du tableau de bord">
+              @for (period of periodOptions; track period.annee + '-' + period.mois) {
+                <button
+                  type="button"
+                  class="period-option"
+                  role="option"
+                  [class.active]="isPeriodSelected(period)"
+                  [attr.aria-selected]="isPeriodSelected(period)"
+                  (click)="selectPeriod(period)"
+                >
+                  {{ period.label }}
+                </button>
+              }
+            </div>
+          }
+        </div>
 
         <button type="button" class="button-primary">
           <img src="/icons/plus.svg" alt="" width="16" height="16" />

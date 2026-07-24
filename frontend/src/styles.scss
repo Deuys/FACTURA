@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
   /* Couleurs principales */
@@ -45,8 +45,9 @@
   --radius-large: 10px;
 
   /* Ombres */
-  --shadow-button:
-    0 2px 4px rgb(0 0 0 / 14%), 0 3px 4px rgb(0 0 0 / 12%), 0 1px 5px rgb(0 0 0 / 20%);
+  --shadow-button: 0 6px 10px 4px rgb(0 0 0 / 15%), 0 2px 3px 0 rgb(0 0 0 / 30%);
+
+  --shadow-surface: 0 4px 8px 3px rgb(0 0 0 / 15%), 0 1px 3px 0 rgb(0 0 0 / 30%);
 }
 
 * {

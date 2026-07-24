@@ -1,7 +1,116 @@
-<section>
-  <h1>Tableau de bord</h1>
+<section class="dashboard-page">
+  @if (isLoading()) {
+    <p>Chargement des données...</p>
+  } @else if (errorMessage()) {
+    <p class="dashboard-error">
+      {{ errorMessage() }}
+    </p>
+  } @else if (dashboard(); as data) {
+    <div class="section-title">
+      <span>
+        Aperçu -
+        {{ formatMonth(data.periode.mois) }} {{ data.periode.annee }}
+      </span>
+    </div>
 
-  <p>Le tableau de bord fonctionne !</p>
+    <div class="kpi-grid">
+      <article class="kpi-card">
+        <div class="kpi-header">
+          <span>Factures payées</span>
 
-  <button type="button" (click)="logout()">Se déconnecter</button>
+          <div class="kpi-icon kpi-icon-success">
+            <img src="/icons/circle-check-big.svg" alt="" />
+          </div>
+        </div>
+
+        <strong class="kpi-value">
+          {{ data.facturesPayees }}
+        </strong>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-header">
+          <span>Factures en attente</span>
+
+          <div class="kpi-icon kpi-icon-warning">
+            <img src="/icons/clock-6.svg" alt="" />
+          </div>
+        </div>
+
+        <strong class="kpi-value">
+          {{ data.facturesEnAttente }}
+        </strong>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-header">
+          <span>Factures en retard</span>
+
+          <div class="kpi-icon kpi-icon-danger">
+            <img src="/icons/clock-alert.svg" alt="" />
+          </div>
+        </div>
+
+        <strong class="kpi-value">
+          {{ data.facturesEnRetard }}
+        </strong>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-header">
+          <span>Chiffre d’affaires</span>
+
+          <div class="kpi-icon kpi-icon-lime">
+            <img src="/icons/coins.svg" alt="" />
+          </div>
+        </div>
+
+        <strong class="kpi-value">
+          {{ formatCurrency(data.chiffreAffaires) }}
+        </strong>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-header">
+          <span>Montant à encaisser</span>
+
+          <div class="kpi-icon kpi-icon-fuchsia">
+            <img src="/icons/chart-no-axes-column-increasing.svg" alt="" />
+          </div>
+        </div>
+
+        <strong class="kpi-value">
+          {{ formatCurrency(data.montantAEncaisser) }}
+        </strong>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-header">
+          <span>Devis en attente</span>
+
+          <div class="kpi-icon kpi-icon-info">
+            <img src="/icons/file-text.svg" alt="" />
+          </div>
+        </div>
+
+        <strong class="kpi-value">
+          {{ data.devisEnAttente }}
+        </strong>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-header">
+          <span>Nouveaux clients</span>
+
+          <div class="kpi-icon kpi-icon-violet">
+            <img src="/icons/user-plus.svg" alt="" />
+          </div>
+        </div>
+
+        <strong class="kpi-value">
+          {{ data.nouveauxClients }}
+        </strong>
+      </article>
+    </div>
+  }
 </section>
