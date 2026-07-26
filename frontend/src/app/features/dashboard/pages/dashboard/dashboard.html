@@ -9,7 +9,8 @@
     <div class="section-title">
       <span>
         Aperçu -
-        {{ formatMonth(data.periode.mois) }} {{ data.periode.annee }}
+        {{ formatMonth(data.periode.mois) }}
+        {{ data.periode.annee }}
       </span>
     </div>
 
@@ -23,9 +24,7 @@
           </div>
         </div>
 
-        <strong class="kpi-value">
-          {{ data.facturesPayees }}
-        </strong>
+        <strong class="kpi-value">{{ data.facturesPayees }}</strong>
       </article>
 
       <article class="kpi-card">
@@ -37,9 +36,7 @@
           </div>
         </div>
 
-        <strong class="kpi-value">
-          {{ data.facturesEnAttente }}
-        </strong>
+        <strong class="kpi-value">{{ data.facturesEnAttente }}</strong>
       </article>
 
       <article class="kpi-card">
@@ -51,9 +48,7 @@
           </div>
         </div>
 
-        <strong class="kpi-value">
-          {{ data.facturesEnRetard }}
-        </strong>
+        <strong class="kpi-value">{{ data.facturesEnRetard }}</strong>
       </article>
 
       <article class="kpi-card">
@@ -93,9 +88,7 @@
           </div>
         </div>
 
-        <strong class="kpi-value">
-          {{ data.devisEnAttente }}
-        </strong>
+        <strong class="kpi-value">{{ data.devisEnAttente }}</strong>
       </article>
 
       <article class="kpi-card">
@@ -107,10 +100,429 @@
           </div>
         </div>
 
-        <strong class="kpi-value">
-          {{ data.nouveauxClients }}
-        </strong>
+        <strong class="kpi-value">{{ data.nouveauxClients }}</strong>
+      </article>
+    </div>
+
+    <div class="section-title analytics-title">
+      <span>Analytiques</span>
+    </div>
+
+    <div class="analytics-grid">
+      <article class="dashboard-panel revenue-panel">
+        <div class="panel-header revenue-panel-header">
+          <div>
+            <h2>Évolution du chiffre d’affaires</h2>
+
+            @if (evolution()) {
+              <div class="revenue-summary">
+                <strong class="revenue-total">
+                  {{ formatCurrency(evolution()?.total ?? '0.00') }}
+                </strong>
+
+                <span>
+                  Encaissements enregistrés en {{ evolution()?.annee ?? analyticsYear() }}
+                </span>
+
+                @if (selectedRevenueItem(); as selectedItem) {
+                  <span class="revenue-selected-value">
+                    {{ formatChartMonth(selectedItem.mois) }} :
+                    {{ formatCurrency(selectedItem.montant) }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="year-filter">
+            @if (evolution(); as revenueData) {
+              <button
+                class="year-filter-trigger"
+                type="button"
+                [class.is-open]="isAnalyticsYearMenuOpen()"
+                [disabled]="analyticsLoading()"
+                [attr.aria-expanded]="isAnalyticsYearMenuOpen()"
+                aria-haspopup="listbox"
+                (click)="toggleAnalyticsYearMenu()"
+              >
+                <span>{{ revenueData.annee ?? analyticsYear() }}</span>
+                <span class="year-filter-chevron"></span>
+              </button>
+
+              @if (isAnalyticsYearMenuOpen()) {
+                <div class="year-filter-menu" role="listbox" aria-label="Année d'analyse">
+                  @for (year of availableYears; track year) {
+                    <button
+                      class="year-filter-option"
+                      type="button"
+                      role="option"
+                      [class.is-selected]="year === (revenueData.annee ?? analyticsYear())"
+                      [attr.aria-selected]="year === (revenueData.annee ?? analyticsYear())"
+                      (click)="selectAnalyticsYear(year)"
+                    >
+                      {{ year }}
+                    </button>
+                  }
+                </div>
+              }
+            } @else {
+              <button class="year-filter-trigger" type="button" disabled>
+                <span>{{ analyticsYear() }}</span>
+                <span class="year-filter-chevron"></span>
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (analyticsLoading()) {
+          <p class="panel-loading">Chargement du graphique...</p>
+        } @else if (evolution(); as revenueData) {
+          <div class="revenue-chart-scroll">
+            <svg
+              class="revenue-chart"
+              viewBox="0 0 720 360"
+              preserveAspectRatio="xMidYMid meet"
+              role="img"
+              aria-label="Évolution mensuelle du chiffre d'affaires"
+            >
+              <g class="revenue-chart-grid">
+                @for (
+                  gridValue of getRevenueChartGridValues(revenueData.donnees);
+                  track gridValue
+                ) {
+                  <line
+                    x1="48"
+                    x2="700"
+                    stroke="#e5e7eb"
+                    stroke-width="1"
+                    [attr.y1]="getRevenueChartY(gridValue, revenueData.donnees)"
+                    [attr.y2]="getRevenueChartY(gridValue, revenueData.donnees)"
+                  ></line>
+
+                  <text
+                    x="38"
+                    fill="#6b7280"
+                    font-family="Inter, Arial, sans-serif"
+                    font-size="11"
+                    [attr.y]="getRevenueChartY(gridValue, revenueData.donnees) + 4"
+                    text-anchor="end"
+                  >
+                    {{ formatRevenueAxisValue(gridValue) }}
+                  </text>
+                }
+              </g>
+
+              <polyline
+                class="revenue-chart-line"
+                fill="none"
+                stroke="#2563eb"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                [attr.points]="getRevenueLinePoints(revenueData.donnees)"
+              ></polyline>
+
+              @for (item of revenueData.donnees; track item.cle; let index = $index) {
+                <g
+                  class="revenue-chart-point"
+                  [class.is-selected]="selectedRevenueItem()?.cle === item.cle"
+                  role="button"
+                  tabindex="0"
+                  [attr.aria-label]="
+                    formatChartMonth(item.mois) + ' : ' + formatCurrency(item.montant)
+                  "
+                  (click)="selectRevenueItem(item)"
+                  (keydown.enter)="selectRevenueItem(item)"
+                  (keydown.space)="selectRevenueItem(item)"
+                >
+                  <title>
+                    {{ formatChartMonth(item.mois) }} : {{ formatCurrency(item.montant) }}
+                  </title>
+
+                  <circle
+                    class="revenue-chart-hit-area"
+                    fill="transparent"
+                    [attr.cx]="getRevenueChartX(index, revenueData.donnees.length)"
+                    [attr.cy]="getRevenueChartY(item.montant, revenueData.donnees)"
+                    r="12"
+                  ></circle>
+
+                  <circle
+                    class="revenue-chart-dot"
+                    fill="#2563eb"
+                    stroke="#ffffff"
+                    stroke-width="1.5"
+                    [attr.cx]="getRevenueChartX(index, revenueData.donnees.length)"
+                    [attr.cy]="getRevenueChartY(item.montant, revenueData.donnees)"
+                    r="3.5"
+                  ></circle>
+
+                  <text
+                    class="revenue-chart-month"
+                    fill="#555555"
+                    font-family="Inter, Arial, sans-serif"
+                    font-size="11"
+                    [attr.x]="getRevenueChartX(index, revenueData.donnees.length)"
+                    y="346"
+                    text-anchor="middle"
+                  >
+                    {{ formatChartMonth(item.mois) }}
+                  </text>
+                </g>
+              }
+            </svg>
+          </div>
+        } @else {
+          <p class="panel-empty">Aucune donnée de chiffre d’affaires.</p>
+        }
+      </article>
+
+      <article class="dashboard-panel distribution-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Répartition de la facturation</h2>
+            <p>Documents en cours de suivi</p>
+          </div>
+
+          @if (repartition(); as distributionData) {
+            <strong class="panel-total">
+              {{ distributionData.totalDocuments }}
+            </strong>
+          }
+        </div>
+
+        @if (repartition(); as distributionData) {
+          @if (distributionData.totalDocuments > 0) {
+            <div class="pie-content">
+              <div
+                class="pie-chart"
+                role="img"
+                aria-label="Répartition des documents par statut"
+                [style.background]="getPieChartBackground(distributionData.repartition)"
+              >
+                <div class="pie-chart-center">
+                  <strong>{{ distributionData.totalDocuments }}</strong>
+                  <span>Documents</span>
+                </div>
+              </div>
+
+              <div class="pie-legend">
+                @for (item of distributionData.repartition; track item.statut; let index = $index) {
+                  <div class="pie-legend-item">
+                    <div class="pie-legend-label">
+                      <span
+                        class="pie-legend-dot"
+                        [style.background]="getStatusColor(item.statut, index)"
+                      ></span>
+
+                      <span>{{ item.statut }}</span>
+                    </div>
+
+                    <div class="pie-legend-values">
+                      <strong>{{ item.pourcentage }} %</strong>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="distribution-totals">
+              @for (item of distributionData.repartition; track item.statut; let index = $index) {
+                <div class="distribution-total">
+                  <strong [style.color]="getStatusColor(item.statut, index)">
+                    {{ item.nombre }}
+                  </strong>
+
+                  <span>
+                    {{ getDistributionShortLabel(item.statut) }}
+                  </span>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="panel-empty">Aucun document à répartir.</p>
+          }
+        } @else {
+          <p class="panel-empty">Aucun document à répartir.</p>
+        }
+      </article>
+
+      <article class="dashboard-panel activity-panel">
+        <div class="panel-header activity-panel-header">
+          <div>
+            <h2>Activité récente</h2>
+            <p>Les cinq dernières opérations</p>
+          </div>
+        </div>
+
+        @if (activites().length > 0) {
+          <div class="activity-list">
+            @for (activity of activites(); track activity.id) {
+              <div class="activity-item">
+                <div [class]="'activity-icon ' + getActivityClass(activity.type)">
+                  <img [src]="getActivityIcon(activity.type)" alt="" />
+                </div>
+
+                <div class="activity-content">
+                  <strong>{{ activity.titre }}</strong>
+                  <span>{{ activity.description }}</span>
+                </div>
+
+                @if (activity.date) {
+                  <time class="activity-date" [attr.datetime]="activity.date">
+                    {{ formatActivityDate(activity.date) }}
+                  </time>
+                }
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="panel-empty">Aucune activité récente.</p>
+        }
+
+        <a
+          class="activity-see-all"
+          href="#"
+          aria-label="Voir toute l’activité"
+          (click)="$event.preventDefault()"
+        >
+          <span>Voir toute l’activité</span>
+          <span aria-hidden="true">→</span>
+        </a>
       </article>
     </div>
   }
+  <div class="section-title daily-title">
+    <span>Gestion quotidienne</span>
+  </div>
+
+  <div class="daily-management-grid">
+    <article class="dashboard-panel daily-panel">
+      <div class="daily-panel-header">
+        <h2>Dernières factures</h2>
+
+        <a class="daily-panel-action" href="#" (click)="$event.preventDefault()"> Voir tout </a>
+      </div>
+
+      @if (dernieresFactures().length > 0) {
+        <div class="daily-table-scroll">
+          <table class="daily-table">
+            <thead>
+              <tr>
+                <th>N° facture</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th>Montant</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (facture of dernieresFactures(); track facture.numero) {
+                <tr>
+                  <td>{{ facture.numero }}</td>
+
+                  <td class="daily-client-cell" [title]="facture.client">
+                    {{ facture.client }}
+                  </td>
+
+                  <td>{{ formatInvoiceDate(facture.date) }}</td>
+
+                  <td>{{ formatCurrency(facture.montant) }}</td>
+
+                  <td>
+                    <span [class]="'badge ' + getInvoiceStatusClass(facture.statut)">
+                      {{ getInvoiceStatusLabel(facture.statut) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="daily-table-footer">
+          <span>{{ dernieresFactures().length }} entrées affichées</span>
+
+          <div class="daily-pagination" aria-label="Pagination des dernières factures">
+            <button type="button" aria-label="Page précédente">‹</button>
+
+            <button type="button" class="is-active" aria-current="page">1</button>
+
+            <button type="button">2</button>
+            <button type="button">3</button>
+
+            <button type="button" aria-label="Page suivante">›</button>
+          </div>
+        </div>
+      } @else {
+        <p class="panel-empty">Aucune facture récente.</p>
+      }
+    </article>
+
+    <article class="dashboard-panel daily-panel">
+      <div class="daily-panel-header">
+        <h2>Factures à échéance</h2>
+
+        <a class="daily-panel-action" href="#" (click)="$event.preventDefault()"> Voir tout </a>
+      </div>
+
+      @if (facturesEcheance().length > 0) {
+        <div class="daily-table-scroll">
+          <table class="daily-table">
+            <thead>
+              <tr>
+                <th>N° facture</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th>Montant</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (facture of facturesEcheance(); track facture.numero) {
+                <tr>
+                  <td>{{ facture.numero }}</td>
+
+                  <td class="daily-client-cell" [title]="facture.client">
+                    {{ facture.client }}
+                  </td>
+
+                  <td>
+                    {{ formatInvoiceDate(facture.dateEcheance) }}
+                  </td>
+
+                  <td>{{ formatCurrency(facture.montant) }}</td>
+
+                  <td>
+                    <span [class]="'badge ' + getInvoiceStatusClass(facture.statut)">
+                      {{ getInvoiceStatusLabel(facture.statut) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="daily-table-footer">
+          <span>{{ facturesEcheance().length }} entrées affichées</span>
+
+          <div class="daily-pagination" aria-label="Pagination des factures à échéance">
+            <button type="button" aria-label="Page précédente">‹</button>
+
+            <button type="button" class="is-active" aria-current="page">1</button>
+
+            <button type="button">2</button>
+           <button type="button">3</button>
+
+            <button type="button" aria-label="Page suivante">›</button>
+          </div>
+        </div>
+      } @else {
+        <p class="panel-empty">Aucune facture à échéance.</p>
+      }
+    </article>
+  </div>
 </section>

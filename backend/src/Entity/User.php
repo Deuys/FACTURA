@@ -27,6 +27,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\NotBlank(
+        message: 'Le prénom est obligatoire.',
+        groups: ['registration']
+    )]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: 'Le prénom ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    private ?string $prenom = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\NotBlank(
+        message: 'Le nom est obligatoire.',
+        groups: ['registration']
+    )]
+    #[Assert\Length(
+        max: 100,
+        maxMessage: 'Le nom ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    private ?string $nom = null;
+
     #[ORM\Column(length: 180)]
     #[Assert\NotBlank(
         message: 'L’adresse e-mail est obligatoire.'
@@ -131,7 +153,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return $this->id;
     }
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
 
+    public function setPrenom(?string $prenom): static
+    {
+        $this->prenom = $prenom !== null
+            ? trim($prenom)
+            : null;
+
+        return $this;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+
+    public function setNom(?string $nom): static
+    {
+        $this->nom = $nom !== null
+            ? trim($nom)
+            : null;
+
+        return $this;
+    }
     public function getEmail(): ?string
     {
         return $this->email;

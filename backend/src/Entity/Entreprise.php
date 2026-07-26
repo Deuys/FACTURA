@@ -39,29 +39,39 @@ class Entreprise
     )]
     private ?string $logo = null;
 
-    #[ORM\Column(length: 255)]
-    #[Assert\NotBlank(message: 'L’adresse est obligatoire.')]
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\NotBlank(
+        message: 'L’adresse est obligatoire.',
+        groups: ['configuration']
+    )]
     #[Assert\Length(
         max: 255,
         maxMessage: 'L’adresse ne peut pas dépasser {{ limit }} caractères.'
     )]
     private ?string $adresse = null;
 
-    #[ORM\Column(length: 100)]
-    #[Assert\NotBlank(message: 'La ville est obligatoire.')]
+    #[ORM\Column(length: 100, nullable: true)]
+    #[Assert\NotBlank(
+        message: 'La ville est obligatoire.',
+        groups: ['configuration']
+    )]
     #[Assert\Length(
         max: 100,
         maxMessage: 'La ville ne peut pas dépasser {{ limit }} caractères.'
     )]
     private ?string $ville = null;
 
-    #[ORM\Column(length: 20)]
-    #[Assert\NotBlank(message: 'Le code postal est obligatoire.')]
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\NotBlank(
+        message: 'Le code postal est obligatoire.',
+        groups: ['configuration']
+    )]
     #[Assert\Length(
         max: 20,
         maxMessage: 'Le code postal ne peut pas dépasser {{ limit }} caractères.'
     )]
     private ?string $codePostal = null;
+
     #[ORM\Column(length: 100, nullable: true)]
     #[Assert\Length(
         max: 100,
@@ -314,6 +324,18 @@ class Entreprise
         $this->codePostal = $codePostal;
 
         return $this;
+    }
+
+    public function isComplete(): bool
+    {
+        return $this->nom !== null
+            && trim($this->nom) !== ''
+            && $this->adresse !== null
+            && trim($this->adresse) !== ''
+            && $this->ville !== null
+            && trim($this->ville) !== ''
+            && $this->codePostal !== null
+            && trim($this->codePostal) !== '';
     }
 
     public function getPays(): ?string

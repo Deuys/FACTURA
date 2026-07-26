@@ -518,9 +518,11 @@ final class DashboardService
             ->leftJoin('f.client', 'c')
             ->addSelect('c')
             ->andWhere('f.user = :user')
+            ->andWhere('f.archivee = :archivee')
             ->setParameter('user', $user)
+            ->setParameter('archivee', false)
             ->orderBy('f.createdAt', 'DESC')
-            ->setMaxResults(5)
+            ->setMaxResults(6)
             ->getQuery()
             ->getResult();
 
@@ -535,7 +537,9 @@ final class DashboardService
                             . ' '
                             . ($facture->getClient()?->getNom() ?? '')
                     ),
-                'date' => $facture->getDateEmission()?->format('Y-m-d'),
+                'date' => $facture
+                    ->getDateEmission()
+                    ?->format('Y-m-d'),
                 'montant' => $facture->getTotalTTC(),
                 'statut' => $facture->getStatut()->value,
             ];
@@ -549,6 +553,7 @@ final class DashboardService
         $aujourdhui = new \DateTimeImmutable('today');
 
         $statutsAEcheance = [
+            StatutFacture::BROUILLON,
             StatutFacture::PLANIFIEE,
             StatutFacture::EN_ATTENTE,
             StatutFacture::ENVOYEE,
@@ -561,13 +566,15 @@ final class DashboardService
             ->leftJoin('f.client', 'c')
             ->addSelect('c')
             ->andWhere('f.user = :user')
+            ->andWhere('f.archivee = :archivee')
             ->andWhere('f.dateEcheance >= :aujourdhui')
             ->andWhere('f.statut IN (:statuts)')
             ->setParameter('user', $user)
+            ->setParameter('archivee', false)
             ->setParameter('aujourdhui', $aujourdhui)
             ->setParameter('statuts', $statutsAEcheance)
             ->orderBy('f.dateEcheance', 'ASC')
-            ->setMaxResults(5)
+            ->setMaxResults(6)
             ->getQuery()
             ->getResult();
 
@@ -738,29 +745,72 @@ final class DashboardService
         $factureRepository = $this->entityManager
             ->getRepository(Facture::class);
 
-        $totalFactures = $factureRepository->count([
+        $devisRepository = $this->entityManager
+            ->getRepository(Devis::class);
+
+        $facturesPayees = $factureRepository->count([
             'user' => $user,
+            'statut' => StatutFacture::PAYEE,
         ]);
 
-        $repartition = [];
+        $facturesEnAttente = (int) $factureRepository
+            ->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->andWhere('f.user = :user')
+            ->andWhere('f.statut IN (:statuts)')
+            ->setParameter('user', $user)
+            ->setParameter('statuts', [
+                StatutFacture::EN_ATTENTE,
+                StatutFacture::ENVOYEE,
+                StatutFacture::PLANIFIEE,
+                StatutFacture::PARTIELLEMENT_PAYEE,
+            ])
+            ->getQuery()
+            ->getSingleScalarResult();
 
-        foreach (StatutFacture::cases() as $statut) {
-            $nombre = $factureRepository->count([
-                'user' => $user,
-                'statut' => $statut,
-            ]);
+        $facturesEnRetard = $factureRepository->count([
+            'user' => $user,
+            'statut' => StatutFacture::EN_RETARD,
+        ]);
 
-            $repartition[] = [
-                'statut' => $statut->value,
-                'nombre' => $nombre,
-                'pourcentage' => $totalFactures > 0
-                    ? round(($nombre / $totalFactures) * 100, 2)
-                    : 0,
-            ];
+        $devisEnAttente = $devisRepository->count([
+            'user' => $user,
+            'statut' => StatutDevis::EN_ATTENTE,
+        ]);
+
+        $repartition = [
+            [
+                'statut' => 'Payées',
+                'nombre' => $facturesPayees,
+            ],
+            [
+                'statut' => 'En attente',
+                'nombre' => $facturesEnAttente,
+            ],
+            [
+                'statut' => 'En retard',
+                'nombre' => $facturesEnRetard,
+            ],
+            [
+                'statut' => 'Devis en attente',
+                'nombre' => $devisEnAttente,
+            ],
+        ];
+
+        $totalDocuments = array_sum(
+            array_column($repartition, 'nombre')
+        );
+
+        foreach ($repartition as &$item) {
+            $item['pourcentage'] = $totalDocuments > 0
+                ? round(($item['nombre'] / $totalDocuments) * 100, 2)
+                : 0;
         }
 
+        unset($item);
+
         return [
-            'totalFactures' => $totalFactures,
+            'totalDocuments' => $totalDocuments,
             'repartition' => $repartition,
         ];
     }

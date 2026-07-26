@@ -3,7 +3,6 @@ import { inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-
 import { CurrentUser } from '../models/current-user';
 import { LoginRequest } from '../models/login-request';
 import { LoginResponse } from '../models/login-response';
@@ -21,10 +20,14 @@ export class AuthService {
 
   readonly currentUser = this.currentUserSignal.asReadonly();
 
-  login(credentials: LoginRequest): Observable<LoginResponse> {
+  login(credentials: LoginRequest, rememberMe = false): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap((response) => {
-        localStorage.setItem(this.tokenKey, response.token);
+        this.clearStoredToken();
+
+        const storage = rememberMe ? localStorage : sessionStorage;
+
+        storage.setItem(this.tokenKey, response.token);
       }),
     );
   }
@@ -38,15 +41,20 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+    return localStorage.getItem(this.tokenKey) ?? sessionStorage.getItem(this.tokenKey);
   }
 
   logout(): void {
-    localStorage.removeItem(this.tokenKey);
+    this.clearStoredToken();
     this.currentUserSignal.set(null);
   }
 
   isAuthenticated(): boolean {
     return this.getToken() !== null;
+  }
+
+  private clearStoredToken(): void {
+    localStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.tokenKey);
   }
 }

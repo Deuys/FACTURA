@@ -1,5 +1,14 @@
-<div class="app-layout">
-  <aside class="sidebar">
+<div class="app-layout" [class.mobile-navigation-open]="mobileNavigationOpen()">
+  @if (mobileNavigationOpen()) {
+    <button
+      type="button"
+      class="mobile-backdrop"
+      aria-label="Fermer le menu de navigation"
+      (click)="closeMobileNavigation()"
+    ></button>
+  }
+
+  <aside id="main-navigation" class="sidebar" aria-label="Navigation principale">
     <div class="logo">
       <div class="logo-mark">F</div>
       <h2>FACTURA</h2>
@@ -10,6 +19,7 @@
         routerLink="/dashboard"
         routerLinkActive="active"
         [routerLinkActiveOptions]="{ exact: true }"
+        (click)="closeMobileNavigation()"
       >
         <img src="/icons/dashboard.svg" alt="" />
         <span>Tableau de bord</span>
@@ -17,36 +27,38 @@
 
       <h4>Gestion</h4>
 
-      <a routerLink="/clients" routerLinkActive="active">
+      <a routerLink="/clients" routerLinkActive="active" (click)="closeMobileNavigation()">
         <img src="/icons/user.svg" alt="" />
         <span>Clients</span>
       </a>
 
-      <a routerLink="/produits" routerLinkActive="active">
+      <a routerLink="/produits" routerLinkActive="active" (click)="closeMobileNavigation()">
         <img src="/icons/package.svg" alt="" />
         <span>Produits et services</span>
       </a>
 
       <h4>Facturation</h4>
 
-      <a routerLink="/devis" routerLinkActive="active">
+      <a routerLink="/devis" routerLinkActive="active" (click)="closeMobileNavigation()">
         <img src="/icons/file-text.svg" alt="" />
         <span>Devis</span>
       </a>
 
-      <a routerLink="/factures" routerLinkActive="active">
+      <a routerLink="/factures" routerLinkActive="active" (click)="closeMobileNavigation()">
         <img src="/icons/receipt.svg" alt="" />
         <span>Factures</span>
       </a>
 
-      <a routerLink="/paiements" routerLinkActive="active">
+      <a routerLink="/paiements" routerLinkActive="active" (click)="closeMobileNavigation()">
         <img src="/icons/wallet.svg" alt="" />
         <span>Paiements</span>
       </a>
 
+      <hr />
+
       <h4>Configuration</h4>
 
-      <a routerLink="/parametres" routerLinkActive="active">
+      <a routerLink="/parametres" routerLinkActive="active" (click)="closeMobileNavigation()">
         <img src="/icons/settings.svg" alt="" />
         <span>Paramètres</span>
       </a>
@@ -69,9 +81,7 @@
         (click)="toggleUserMenu()"
       >
         @if (currentUser()) {
-          <div class="user-avatar">
-            {{ userInitials() }}
-          </div>
+          <div class="user-avatar">{{ userInitials() }}</div>
 
           <div class="user-info">
             <strong>{{ displayName() }}</strong>
@@ -93,6 +103,17 @@
 
   <div class="main-content">
     <header class="header">
+      <button
+        type="button"
+        class="mobile-menu-button"
+        [attr.aria-expanded]="mobileNavigationOpen()"
+        aria-controls="main-navigation"
+        aria-label="Ouvrir le menu de navigation"
+        (click)="toggleMobileNavigation()"
+      >
+        <span class="mobile-menu-button-lines" aria-hidden="true"></span>
+      </button>
+
       <div class="header-left">
         <h1>Tableau de bord</h1>
 
@@ -136,7 +157,7 @@
           }
         </div>
 
-        <button type="button" class="button-primary">
+        <button type="button" class="button-primary" aria-label="Créer une nouvelle facture">
           <img src="/icons/plus.svg" alt="" width="16" height="16" />
 
           <span>Nouvelle facture</span>

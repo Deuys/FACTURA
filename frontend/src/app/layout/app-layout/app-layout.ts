@@ -23,6 +23,7 @@ export class AppLayout implements OnInit {
 
   protected readonly userMenuOpen = signal(false);
   protected readonly periodMenuOpen = signal(false);
+  protected readonly mobileNavigationOpen = signal(false);
 
   protected readonly currentUser = this.authService.currentUser;
   protected readonly selectedPeriod = this.dashboardService.selectedPeriod;
@@ -99,6 +100,16 @@ export class AppLayout implements OnInit {
     });
   }
 
+  protected toggleMobileNavigation(): void {
+    this.mobileNavigationOpen.update((isOpen) => !isOpen);
+    this.userMenuOpen.set(false);
+    this.periodMenuOpen.set(false);
+  }
+
+  protected closeMobileNavigation(): void {
+    this.mobileNavigationOpen.set(false);
+  }
+
   protected togglePeriodMenu(): void {
     this.periodMenuOpen.update((isOpen) => !isOpen);
   }
@@ -120,6 +131,7 @@ export class AppLayout implements OnInit {
 
   protected logout(): void {
     this.userMenuOpen.set(false);
+    this.mobileNavigationOpen.set(false);
     this.authService.logout();
     void this.router.navigate(['/connexion']);
   }

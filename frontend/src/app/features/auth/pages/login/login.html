@@ -1,10 +1,27 @@
-<section class="login-page">
-  <div class="login-card">
+<main class="login-page">
+  <section class="login-card" aria-labelledby="login-title">
     <header class="login-header">
-      <p class="login-brand">FACTURA</p>
-      <h1>Connexion</h1>
-      <p>Accède à ton espace de gestion.</p>
+      <div class="login-brand" aria-label="FACTURA">
+        <span class="login-brand-mark" aria-hidden="true">F</span>
+        <span class="login-brand-name">FACTURA</span>
+      </div>
+
+      <h1 id="login-title">Connexion</h1>
+
+      <p class="login-subtitle">Connectez-vous pour accéder à votre espace de gestion.</p>
     </header>
+
+    @if (errorMessage(); as message) {
+      <div class="login-alert login-alert-error" role="alert">
+        {{ message }}
+      </div>
+    }
+
+    @if (noticeMessage(); as message) {
+      <div class="login-alert login-alert-notice" role="status">
+        {{ message }}
+      </div>
+    }
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
       <div class="form-field">
@@ -16,6 +33,7 @@
           formControlName="email"
           autocomplete="email"
           placeholder="nom@entreprise.fr"
+          [attr.aria-invalid]="loginForm.controls.email.invalid && loginForm.controls.email.touched"
         />
 
         @if (loginForm.controls.email.invalid && loginForm.controls.email.touched) {
@@ -30,15 +48,52 @@
       </div>
 
       <div class="form-field">
-        <label for="password">Mot de passe</label>
+        <div class="form-label-row">
+          <label for="password">Mot de passe</label>
 
-        <input
-          id="password"
-          type="password"
-          formControlName="password"
-          autocomplete="current-password"
-          placeholder="12 caractères minimum"
-        />
+          <button
+            type="button"
+            class="text-button forgot-button"
+            (click)="showForgotPasswordNotice()"
+          >
+            Mot de passe oublié ?
+          </button>
+        </div>
+
+        <div class="password-control">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            placeholder="12 caractères minimum"
+            [attr.aria-invalid]="
+              loginForm.controls.password.invalid && loginForm.controls.password.touched
+            "
+          />
+
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="
+              showPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+            "
+          >
+            @if (!showPassword()) {
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z" />
+                <circle cx="12" cy="12" r="2.5" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m3 3 18 18" />
+                <path d="M10.6 6.2A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.1 3.4" />
+                <path d="M6.2 6.7C3.9 8.2 2.5 12 2.5 12s3.5 6 9.5 6a10 10 0 0 0 3-.5" />
+              </svg>
+            }
+          </button>
+        </div>
 
         @if (loginForm.controls.password.invalid && loginForm.controls.password.touched) {
           <p class="field-error">
@@ -51,9 +106,34 @@
         }
       </div>
 
-      <button type="submit" [disabled]="loginForm.invalid || isLoading()">
-        {{ isLoading() ? 'Connexion en cours...' : 'Se connecter' }}
+      <label class="remember-row">
+        <input type="checkbox" formControlName="rememberMe" />
+
+        <span>Se souvenir de moi</span>
+      </label>
+
+      <button type="submit" class="login-submit" [disabled]="loginForm.invalid || isLoading()">
+        @if (isLoading()) {
+          <span class="loading-spinner" aria-hidden="true"></span>
+          Connexion...
+        } @else {
+          Se connecter
+        }
       </button>
     </form>
-  </div>
-</section>
+
+    <footer class="login-footer">
+      <span class="account-question"> Pas encore de compte ? </span>
+
+      <button
+        type="button"
+        class="text-button create-account-button"
+        (click)="showCreateAccountNotice()"
+      >
+        Créer un compte
+      </button>
+    </footer>
+
+    <p class="login-copyright">© 2026 FACTURA</p>
+  </section>
+</main>
