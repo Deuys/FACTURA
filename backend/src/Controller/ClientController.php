@@ -112,9 +112,27 @@ final class ClientController extends AbstractController
             ? (int) ceil($total / $limit)
             : 0;
 
+        $statisticsByClient = $clientRepository->getStatisticsForClients(
+            user: $user,
+            clients: $clients
+        );
+
         $data = array_map(
-            fn(Client $client): array =>
-            $this->transformerClient($client),
+            function (Client $client) use ($statisticsByClient): array {
+                $clientId = $client->getId();
+
+                $statistics = $statisticsByClient[$clientId ?? 0] ?? [
+                    'nombreFactures' => 0,
+                    'chiffreAffaires' => '0.00',
+                    'montantEnCours' => '0.00',
+                    'statut' => 'À jour',
+                ];
+
+                return array_merge(
+                    $this->transformerClient($client),
+                    $statistics
+                );
+            },
             $clients
         );
 

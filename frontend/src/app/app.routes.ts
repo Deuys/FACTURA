@@ -4,6 +4,11 @@ import { authGuard } from './core/guards/auth-guard';
 
 export const routes: Routes = [
   {
+    path: 'inscription',
+    loadComponent: () =>
+      import('./features/auth/pages/register/register').then((component) => component.Register),
+  },
+  {
     path: 'connexion',
     loadComponent: () =>
       import('./features/auth/pages/login/login').then((component) => component.Login),
@@ -20,6 +25,11 @@ export const routes: Routes = [
           import('./features/dashboard/pages/dashboard/dashboard').then(
             (component) => component.Dashboard,
           ),
+      },
+      {
+        path: 'clients',
+        loadComponent: () =>
+          import('./features/clients/pages/clients/clients').then((component) => component.Clients),
       },
       {
         path: '',

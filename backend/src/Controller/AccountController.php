@@ -29,7 +29,7 @@ final class AccountController extends AbstractController
             'id' => $user->getId(),
             'email' => $user->getEmail(),
             'roles' => $user->getRoles(),
-            'entrepriseConfiguree' => $user->getEntreprise() !== null,
+            'entrepriseConfiguree' => $user->getEntreprise()?->isComplete() ?? false,
         ]);
     }
 

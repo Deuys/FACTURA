@@ -6,6 +6,8 @@ import { environment } from '../../../environments/environment';
 import { CurrentUser } from '../models/current-user';
 import { LoginRequest } from '../models/login-request';
 import { LoginResponse } from '../models/login-response';
+import { RegisterRequest } from '../models/register-request';
+import { RegisterResponse } from '../models/register-response';
 
 @Injectable({
   providedIn: 'root',
@@ -30,6 +32,10 @@ export class AuthService {
         storage.setItem(this.tokenKey, response.token);
       }),
     );
+  }
+
+  register(request: RegisterRequest): Observable<RegisterResponse> {
+    return this.http.post<RegisterResponse>(`${this.apiUrl}/register`, request);
   }
 
   loadCurrentUser(): Observable<CurrentUser> {

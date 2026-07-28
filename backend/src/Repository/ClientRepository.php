@@ -5,6 +5,9 @@ namespace App\Repository;
 use App\Entity\Client;
 use App\Entity\User;
 use App\Enum\StatutFacture;
+use App\Entity\Facture;
+use App\Entity\Paiement;
+use App\Enum\StatutPaiement;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -240,6 +243,206 @@ class ClientRepository extends ServiceEntityRepository
                 'statutPayee',
                 StatutFacture::PAYEE
             );
+    }
+
+    /**
+     * @param Client[] $clients
+     *
+     * @return array<int, array{
+     *     nombreFactures: int,
+     *     chiffreAffaires: string,
+     *     montantEnCours: string,
+     *     statut: string
+     * }>
+     */
+    public function getStatisticsForClients(
+        User $user,
+        array $clients
+    ): array {
+        $clientIds = [];
+
+        foreach ($clients as $client) {
+            $clientId = $client->getId();
+
+            if ($clientId !== null) {
+                $clientIds[] = $clientId;
+            }
+        }
+
+        $clientIds = array_values(array_unique($clientIds));
+
+        if ($clientIds === []) {
+            return [];
+        }
+
+        $nombreFacturesByClient = [];
+        $totalEnCoursByClient = [];
+        $chiffreAffairesByClient = [];
+        $paiementsEnCoursByClient = [];
+        $statutsByClient = [];
+
+        $statutsEnCours = [
+            StatutFacture::EN_ATTENTE->value,
+            StatutFacture::ENVOYEE->value,
+            StatutFacture::EN_RETARD->value,
+            StatutFacture::PARTIELLEMENT_PAYEE->value,
+        ];
+
+        $factureRows = $this->getEntityManager()
+            ->getRepository(Facture::class)
+            ->createQueryBuilder('f')
+            ->select('IDENTITY(f.client) AS clientId')
+            ->addSelect('COUNT(f.id) AS nombreFactures')
+            ->addSelect(
+                'COALESCE(
+                SUM(
+                    CASE
+                        WHEN f.statut IN (:statutsEnCours)
+                        THEN f.totalTTC
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS totalEnCours'
+            )
+            ->andWhere('f.user = :user')
+            ->andWhere('f.client IN (:clientIds)')
+            ->andWhere('f.archivee = :archivee')
+            ->setParameter('user', $user)
+            ->setParameter('clientIds', $clientIds)
+            ->setParameter('archivee', false)
+            ->setParameter('statutsEnCours', $statutsEnCours)
+            ->groupBy('f.client')
+            ->getQuery()
+            ->getArrayResult();
+
+        foreach ($factureRows as $row) {
+            $clientId = (int) $row['clientId'];
+
+            $nombreFacturesByClient[$clientId] = (int) $row['nombreFactures'];
+            $totalEnCoursByClient[$clientId] = (float) $row['totalEnCours'];
+        }
+
+        $chiffreAffairesRows = $this->getEntityManager()
+            ->getRepository(Paiement::class)
+            ->createQueryBuilder('p')
+            ->innerJoin('p.facture', 'f')
+            ->select('IDENTITY(f.client) AS clientId')
+            ->addSelect('COALESCE(SUM(p.montant), 0) AS chiffreAffaires')
+            ->andWhere('f.user = :user')
+            ->andWhere('f.client IN (:clientIds)')
+            ->andWhere('f.archivee = :archivee')
+            ->andWhere('p.statut = :statutConfirme')
+            ->setParameter('user', $user)
+            ->setParameter('clientIds', $clientIds)
+            ->setParameter('archivee', false)
+            ->setParameter('statutConfirme', StatutPaiement::CONFIRME)
+            ->groupBy('f.client')
+            ->getQuery()
+            ->getArrayResult();
+
+        foreach ($chiffreAffairesRows as $row) {
+            $clientId = (int) $row['clientId'];
+
+            $chiffreAffairesByClient[$clientId] = (float) $row['chiffreAffaires'];
+        }
+
+        $paiementsEnCoursRows = $this->getEntityManager()
+            ->getRepository(Paiement::class)
+            ->createQueryBuilder('p')
+            ->innerJoin('p.facture', 'f')
+            ->select('IDENTITY(f.client) AS clientId')
+            ->addSelect('COALESCE(SUM(p.montant), 0) AS paiementsEnCours')
+            ->andWhere('f.user = :user')
+            ->andWhere('f.client IN (:clientIds)')
+            ->andWhere('f.archivee = :archivee')
+            ->andWhere('f.statut IN (:statutsEnCours)')
+            ->andWhere('p.statut = :statutConfirme')
+            ->setParameter('user', $user)
+            ->setParameter('clientIds', $clientIds)
+            ->setParameter('archivee', false)
+            ->setParameter('statutsEnCours', $statutsEnCours)
+            ->setParameter('statutConfirme', StatutPaiement::CONFIRME)
+            ->groupBy('f.client')
+            ->getQuery()
+            ->getArrayResult();
+
+        foreach ($paiementsEnCoursRows as $row) {
+            $clientId = (int) $row['clientId'];
+
+            $paiementsEnCoursByClient[$clientId] = (float) $row['paiementsEnCours'];
+        }
+
+        $statutRows = $this->getEntityManager()
+            ->getRepository(Facture::class)
+            ->createQueryBuilder('f')
+            ->select('IDENTITY(f.client) AS clientId')
+            ->addSelect('f.statut AS statut')
+            ->andWhere('f.user = :user')
+            ->andWhere('f.client IN (:clientIds)')
+            ->andWhere('f.archivee = :archivee')
+            ->setParameter('user', $user)
+            ->setParameter('clientIds', $clientIds)
+            ->setParameter('archivee', false)
+            ->getQuery()
+            ->getArrayResult();
+
+        foreach ($statutRows as $row) {
+            $clientId = (int) $row['clientId'];
+            $statut = $row['statut'];
+
+            if ($statut instanceof StatutFacture) {
+                $statut = $statut->value;
+            }
+
+            $statutsByClient[$clientId][] = (string) $statut;
+        }
+
+        $statutsEnAttente = [
+            StatutFacture::EN_ATTENTE->value,
+            StatutFacture::ENVOYEE->value,
+            StatutFacture::PARTIELLEMENT_PAYEE->value,
+        ];
+
+        $statistics = [];
+
+        foreach ($clientIds as $clientId) {
+            $statuts = $statutsByClient[$clientId] ?? [];
+
+            $estEnRetard = in_array(
+                StatutFacture::EN_RETARD->value,
+                $statuts,
+                true
+            );
+
+            $estEnAttente = count(
+                array_intersect($statuts, $statutsEnAttente)
+            ) > 0;
+
+            $totalEnCours = $totalEnCoursByClient[$clientId] ?? 0;
+            $paiementsEnCours = $paiementsEnCoursByClient[$clientId] ?? 0;
+
+            $statistics[$clientId] = [
+                'nombreFactures' => $nombreFacturesByClient[$clientId] ?? 0,
+                'chiffreAffaires' => number_format(
+                    $chiffreAffairesByClient[$clientId] ?? 0,
+                    2,
+                    '.',
+                    ''
+                ),
+                'montantEnCours' => number_format(
+                    max(0, $totalEnCours - $paiementsEnCours),
+                    2,
+                    '.',
+                    ''
+                ),
+                'statut' => $estEnRetard
+                    ? 'En retard'
+                    : ($estEnAttente ? 'En attente' : 'À jour'),
+            ];
+        }
+
+        return $statistics;
     }
 
     public function isSortFieldAllowed(string $tri): bool

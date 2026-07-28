@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../features/dashboard/services/dashboard.service';
@@ -92,6 +92,11 @@ export class AppLayout implements OnInit {
   });
 
   ngOnInit(): void {
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.currentRoute.set(event.urlAfterRedirects.split('?')[0].split('#')[0]);
+      }
+    });
     this.authService.loadCurrentUser().subscribe({
       error: () => {
         this.authService.logout();
@@ -118,6 +123,19 @@ export class AppLayout implements OnInit {
     this.dashboardService.setSelectedPeriod(period.annee, period.mois);
     this.periodMenuOpen.set(false);
   }
+
+  private readonly currentRoute = signal(this.router.url.split('?')[0].split('#')[0]);
+
+  protected readonly pageTitle = computed(() => {
+    const titles: Record<string, string> = {
+      '/dashboard': 'Tableau de bord',
+      '/clients': 'Clients',
+    };
+
+    return titles[this.currentRoute()] ?? 'FACTURA';
+  });
+
+  protected readonly isDashboardPage = computed(() => this.currentRoute() === '/dashboard');
 
   protected isPeriodSelected(period: DashboardPeriodOption): boolean {
     const selected = this.selectedPeriod();

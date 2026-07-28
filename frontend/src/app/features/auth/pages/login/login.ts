@@ -85,7 +85,9 @@ export class Login {
 
   protected showCreateAccountNotice(): void {
     this.errorMessage.set(null);
-    this.noticeMessage.set('La création de compte sera disponible prochainement.');
+    this.noticeMessage.set(null);
+
+    void this.router.navigate(['/inscription']);
   }
 
   private getLoginErrorMessage(error: unknown): string {

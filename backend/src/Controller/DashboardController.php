@@ -52,6 +52,20 @@ final class DashboardController extends AbstractController
     }
 
     #[Route(
+        '/api/dashboard/clients',
+        name: 'api_dashboard_clients',
+        methods: ['GET']
+    )]
+    public function clients(
+        DashboardService $dashboardService,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        return $this->json(
+            $dashboardService->getClientsDashboard($user)
+        );
+    }
+
+    #[Route(
         '/api/dashboard/produits',
         name: 'api_dashboard_produits',
         methods: ['GET']

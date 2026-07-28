@@ -1,0 +1,315 @@
+<section class="clients-page">
+  <header class="clients-page-header">
+    <div>
+      <p>Gérez vos clients et leurs informations de facturation.</p>
+    </div>
+  </header>
+
+  <div class="section-title">
+    <span>Vue d’ensemble</span>
+  </div>
+
+  <div class="clients-kpi-grid">
+    <article class="clients-kpi-card">
+      <div class="clients-kpi-header">
+        <span>Total clients</span>
+
+        <div class="clients-kpi-icon clients-kpi-icon-primary">
+          <img src="/icons/user.svg" alt="" />
+        </div>
+      </div>
+
+      <strong>{{ dashboard()?.totalClients ?? '—' }}</strong>
+    </article>
+
+    <article class="clients-kpi-card">
+      <div class="clients-kpi-header">
+        <span>Nouveaux clients</span>
+
+        <div class="clients-kpi-icon clients-kpi-icon-violet">
+          <img src="/icons/user-plus.svg" alt="" />
+        </div>
+      </div>
+
+      <strong>{{ dashboard()?.nouveauxClients ?? '—' }}</strong>
+    </article>
+
+    <article class="clients-kpi-card">
+      <div class="clients-kpi-header">
+        <span>En attente</span>
+
+        <div class="clients-kpi-icon clients-kpi-icon-warning">
+          <img src="/icons/clock-6.svg" alt="" />
+        </div>
+      </div>
+
+      <strong>{{ dashboard()?.clientsEnAttente ?? '—' }}</strong>
+    </article>
+
+    <article class="clients-kpi-card">
+      <div class="clients-kpi-header">
+        <span>À jour</span>
+
+        <div class="clients-kpi-icon clients-kpi-icon-success">
+          <img src="/icons/circle-check-big.svg" alt="" />
+        </div>
+      </div>
+
+      <strong>{{ dashboard()?.clientsAJour ?? '—' }}</strong>
+    </article>
+
+    <article class="clients-kpi-card">
+      <div class="clients-kpi-header">
+        <span>En retard</span>
+
+        <div class="clients-kpi-icon clients-kpi-icon-danger">
+          <img src="/icons/clock-alert.svg" alt="" />
+        </div>
+      </div>
+
+      <strong>{{ dashboard()?.clientsEnRetard ?? '—' }}</strong>
+    </article>
+  </div>
+
+  <div class="section-title clients-list-title">
+    <span>Liste des clients</span>
+  </div>
+
+  <section class="clients-list-card" aria-labelledby="clients-list-heading">
+    <div class="clients-toolbar">
+      <label class="clients-search">
+        <span aria-hidden="true">⌕</span>
+
+        <input
+          type="search"
+          placeholder="Rechercher un client..."
+          aria-label="Rechercher un client"
+          [value]="searchValue()"
+          (input)="onSearchInput($event)"
+        />
+      </label>
+
+      <div class="clients-filters" aria-label="Filtrer les clients">
+        @for (filter of filterOptions; track filter.value) {
+          <button
+            type="button"
+            class="client-filter-button"
+            [class.is-active]="selectedFilter() === filter.value"
+            [attr.aria-pressed]="selectedFilter() === filter.value"
+            (click)="selectFilter(filter.value)"
+          >
+            {{ filter.label }}
+          </button>
+        }
+      </div>
+
+      <button type="button" class="button-primary clients-new-button">
+        <span aria-hidden="true">+</span>
+        <span>Nouveau client</span>
+      </button>
+    </div>
+
+    @if (isLoading()) {
+      <p class="clients-state-message">Chargement des clients...</p>
+    } @else if (errorMessage(); as error) {
+      <p class="clients-state-message clients-state-error">
+        {{ error }}
+      </p>
+    } @else if (clients().length === 0) {
+      <p class="clients-state-message">Aucun client trouvé.</p>
+    } @else {
+      <div class="clients-table-wrapper">
+        <table class="clients-table">
+          <thead>
+            <tr>
+              <th class="clients-checkbox-column">
+                <input type="checkbox" aria-label="Sélectionner tous les clients" />
+              </th>
+              <th>Client</th>
+              <th>Téléphone</th>
+              <th>E-mail</th>
+              <th>Factures</th>
+              <th>Chiffre d’affaires</th>
+              <th>En cours</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (client of clients(); track client.id) {
+              <tr>
+                <td class="clients-checkbox-column">
+                  <input
+                    type="checkbox"
+                    [attr.aria-label]="'Sélectionner ' + getClientName(client)"
+                  />
+                </td>
+
+                <td class="client-identity-cell">
+                  <div class="client-identity">
+                    <span class="client-avatar">
+                      {{ getClientInitials(client) }}
+                    </span>
+
+                    <span class="client-identity-text">
+                      <strong>{{ getClientName(client) }}</strong>
+
+                      @if (client.entreprise) {
+                        <small>{{ client.entreprise }}</small>
+                      }
+                    </span>
+                  </div>
+                </td>
+
+                <td>{{ formatPhone(client.telephone) }}</td>
+
+                <td class="client-email-cell" [title]="client.email">
+                  {{ client.email }}
+                </td>
+
+                <td>{{ client.nombreFactures ?? '—' }}</td>
+
+                <td>{{ formatCurrency(client.chiffreAffaires) }}</td>
+
+                <td>{{ formatCurrency(client.montantEnCours) }}</td>
+
+                <td>
+                  <span [class]="'client-status-badge ' + getClientStatusClass(client)">
+                    {{ getClientStatusLabel(client) }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="client-actions">
+                    <button type="button" class="client-action-button" aria-label="Voir le client">
+                      <img src="/icons/eye.svg" alt="" />
+                    </button>
+
+                    <button
+                      type="button"
+                      class="client-action-button"
+                      aria-label="Modifier le client"
+                    >
+                      <img src="/icons/pencil.svg" alt="" />
+                    </button>
+
+                    <button
+                      type="button"
+                      class="client-action-button"
+                      aria-label="Supprimer le client"
+                    >
+                      <img src="/icons/trash-2.svg" alt="" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="clients-mobile-list">
+        @for (client of clients(); track client.id) {
+          <article class="client-mobile-card">
+            <div class="client-mobile-header">
+              <div class="client-identity">
+                <span class="client-avatar">
+                  {{ getClientInitials(client) }}
+                </span>
+
+                <span class="client-identity-text">
+                  <strong>{{ getClientName(client) }}</strong>
+
+                  @if (client.entreprise) {
+                    <small>{{ client.entreprise }}</small>
+                  }
+                </span>
+              </div>
+
+              <span [class]="'client-status-badge ' + getClientStatusClass(client)">
+                {{ getClientStatusLabel(client) }}
+              </span>
+            </div>
+
+            <div class="client-mobile-contact">
+              <span>{{ client.email }}</span>
+              <span>{{ formatPhone(client.telephone) }}</span>
+            </div>
+
+            <div class="client-mobile-metrics">
+              <div>
+                <span>Factures</span>
+                <strong>{{ client.nombreFactures ?? '—' }}</strong>
+              </div>
+
+              <div>
+                <span>Chiffre d’affaires</span>
+                <strong>{{ formatCurrency(client.chiffreAffaires) }}</strong>
+              </div>
+
+              <div>
+                <span>En cours</span>
+                <strong>{{ formatCurrency(client.montantEnCours) }}</strong>
+              </div>
+            </div>
+
+            <div class="client-mobile-actions">
+              <button type="button" class="client-action-button" aria-label="Voir le client">
+                <img src="/icons/eye.svg" alt="" />
+              </button>
+
+              <button type="button" class="client-action-button" aria-label="Modifier le client">
+                <img src="/icons/pencil.svg" alt="" />
+              </button>
+
+              <button type="button" class="client-action-button" aria-label="Supprimer le client">
+                <img src="/icons/trash-2.svg" alt="" />
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (pagination(); as page) {
+        <footer class="clients-table-footer">
+          <span> {{ page.total }} client{{ page.total > 1 ? 's' : '' }} </span>
+
+          <div class="clients-pagination" aria-label="Pagination des clients">
+            <button
+              type="button"
+              class="clients-pagination-button"
+              aria-label="Page précédente"
+              [disabled]="page.pagePrecedente === null"
+              (click)="goToPreviousPage()"
+            >
+              ‹
+            </button>
+
+            @for (pageNumber of getPageNumbers(); track pageNumber) {
+              <button
+                type="button"
+                class="clients-pagination-button"
+                [class.is-active]="pageNumber === currentPage()"
+                [attr.aria-current]="pageNumber === currentPage() ? 'page' : null"
+                (click)="goToPage(pageNumber)"
+              >
+                {{ pageNumber }}
+              </button>
+            }
+
+            <button
+              type="button"
+              class="clients-pagination-button"
+              aria-label="Page suivante"
+              [disabled]="page.pageSuivante === null"
+              (click)="goToNextPage()"
+            >
+              ›
+            </button>
+          </div>
+        </footer>
+      }
+    }
+  </section>
+</section>

@@ -1,0 +1,257 @@
+<main class="register-page">
+  <section class="register-card" aria-labelledby="register-title">
+    <header class="register-header">
+      <div class="register-brand" aria-label="FACTURA">
+        <span class="register-brand-mark" aria-hidden="true">F</span>
+        <span class="register-brand-name">FACTURA</span>
+      </div>
+
+      <h1 id="register-title">Créer un compte</h1>
+
+      <p class="register-subtitle">Rejoignez FACTURA et gérez vos factures facilement.</p>
+
+      <p class="login-link-row">
+        Déjà un compte ?
+        <a routerLink="/connexion">Se connecter</a>
+      </p>
+    </header>
+
+    @if (errorMessage(); as message) {
+      <div class="register-alert register-alert-error" role="alert">
+        {{ message }}
+      </div>
+    }
+
+    @if (successMessage(); as message) {
+      <div class="register-alert register-alert-success" role="status">
+        {{ message }}
+      </div>
+    }
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" novalidate>
+      <div class="field-grid">
+        <div class="form-field">
+          <label for="prenom">Prénom</label>
+
+          <input
+            id="prenom"
+            type="text"
+            formControlName="prenom"
+            autocomplete="given-name"
+            placeholder="Jean"
+          />
+
+          @if (registerForm.controls.prenom.invalid && registerForm.controls.prenom.touched) {
+            <p class="field-error">Le prénom est obligatoire.</p>
+          }
+        </div>
+
+        <div class="form-field">
+          <label for="nom">Nom</label>
+
+          <input
+            id="nom"
+            type="text"
+            formControlName="nom"
+            autocomplete="family-name"
+            placeholder="Dupont"
+          />
+
+          @if (registerForm.controls.nom.invalid && registerForm.controls.nom.touched) {
+            <p class="field-error">Le nom est obligatoire.</p>
+          }
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="nomEntreprise">
+          Nom de l’entreprise
+          <span class="optional-label">(facultatif)</span>
+        </label>
+
+        <input
+          id="nomEntreprise"
+          type="text"
+          formControlName="nomEntreprise"
+          autocomplete="organization"
+          placeholder="Dupont Conseil"
+        />
+
+        @if (
+          registerForm.controls.nomEntreprise.invalid && registerForm.controls.nomEntreprise.touched
+        ) {
+          <p class="field-error">Le nom de l’entreprise ne peut pas dépasser 150 caractères.</p>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="email">Adresse e-mail</label>
+
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="email"
+          placeholder="said@exemple.com"
+        />
+
+        @if (registerForm.controls.email.invalid && registerForm.controls.email.touched) {
+          <p class="field-error">
+            @if (registerForm.controls.email.hasError('required')) {
+              L’adresse e-mail est obligatoire.
+            } @else {
+              L’adresse e-mail n’est pas valide.
+            }
+          </p>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="password">Mot de passe</label>
+
+        <div class="password-control">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="new-password"
+            placeholder="12 caractères minimum"
+          />
+
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="
+              showPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+            "
+          >
+            @if (!showPassword()) {
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z" />
+                <circle cx="12" cy="12" r="2.5" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m3 3 18 18" />
+                <path d="M10.6 6.2A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.1 3.4" />
+                <path d="M6.2 6.7C3.9 8.2 2.5 12 2.5 12s3.5 6 9.5 6a10 10 0 0 0 3-.5" />
+              </svg>
+            }
+          </button>
+        </div>
+
+        @if (registerForm.controls.password.invalid && registerForm.controls.password.touched) {
+          <p class="field-error">
+            @if (registerForm.controls.password.hasError('required')) {
+              Le mot de passe est obligatoire.
+            } @else {
+              Le mot de passe doit contenir au moins 12 caractères.
+            }
+          </p>
+        }
+      </div>
+
+      <div class="form-field">
+        <label for="passwordConfirmation"> Confirmer le mot de passe </label>
+
+        <div class="password-control">
+          <input
+            id="passwordConfirmation"
+            [type]="showPasswordConfirmation() ? 'text' : 'password'"
+            formControlName="passwordConfirmation"
+            autocomplete="new-password"
+            placeholder="Confirmez votre mot de passe"
+          />
+
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="togglePasswordConfirmationVisibility()"
+            [attr.aria-label]="
+              showPasswordConfirmation() ? 'Masquer la confirmation' : 'Afficher la confirmation'
+            "
+          >
+            @if (!showPasswordConfirmation()) {
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z" />
+                <circle cx="12" cy="12" r="2.5" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m3 3 18 18" />
+                <path d="M10.6 6.2A10.5 10.5 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.1 3.4" />
+                <path d="M6.2 6.7C3.9 8.2 2.5 12 2.5 12s3.5 6 9.5 6a10 10 0 0 0 3-.5" />
+              </svg>
+            }
+          </button>
+        </div>
+
+        @if (
+          registerForm.controls.passwordConfirmation.invalid &&
+          registerForm.controls.passwordConfirmation.touched
+        ) {
+          <p class="field-error">
+            @if (registerForm.controls.passwordConfirmation.hasError('required')) {
+              La confirmation du mot de passe est obligatoire.
+            } @else {
+              La confirmation du mot de passe ne correspond pas.
+            }
+          </p>
+        } @else if (
+          registerForm.hasError('passwordMismatch') &&
+          registerForm.controls.passwordConfirmation.touched
+        ) {
+          <p class="field-error">La confirmation du mot de passe ne correspond pas.</p>
+        }
+      </div>
+
+      <div class="legal-fields">
+        <label class="checkbox-row">
+          <input type="checkbox" formControlName="acceptTerms" />
+
+          <span>
+            J’accepte les
+            <strong>Conditions d’utilisation</strong>
+          </span>
+        </label>
+
+        @if (
+          registerForm.controls.acceptTerms.invalid && registerForm.controls.acceptTerms.touched
+        ) {
+          <p class="field-error">Vous devez accepter les conditions d’utilisation.</p>
+        }
+
+        <label class="checkbox-row">
+          <input type="checkbox" formControlName="acceptPrivacy" />
+
+          <span>
+            J’accepte la
+            <strong>Politique de confidentialité</strong>
+          </span>
+        </label>
+
+        @if (
+          registerForm.controls.acceptPrivacy.invalid && registerForm.controls.acceptPrivacy.touched
+        ) {
+          <p class="field-error">Vous devez accepter la politique de confidentialité.</p>
+        }
+      </div>
+
+      <button
+        type="submit"
+        class="register-submit"
+        [disabled]="registerForm.invalid || isLoading()"
+      >
+        @if (isLoading()) {
+          <span class="loading-spinner" aria-hidden="true"></span>
+          Création...
+        } @else {
+          Créer un compte
+        }
+      </button>
+    </form>
+
+    <p class="register-copyright">© 2026 FACTURA</p>
+  </section>
+</main>

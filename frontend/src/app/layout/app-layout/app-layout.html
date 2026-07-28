@@ -115,53 +115,54 @@
       </button>
 
       <div class="header-left">
-        <h1>Tableau de bord</h1>
+        <h1>{{ pageTitle() }}</h1>
 
-        <label class="search-field">
-          <span aria-hidden="true">⌕</span>
-
-          <input type="search" placeholder="Rechercher..." aria-label="Rechercher" />
-        </label>
+        @if (isDashboardPage()) {
+          <label class="search-field">
+            <span aria-hidden="true">⌕</span>
+            <input type="search" placeholder="Rechercher..." aria-label="Rechercher" />
+          </label>
+        }
       </div>
 
       <div class="header-actions">
-        <div class="period-dropdown">
-          <button
-            type="button"
-            class="period-trigger"
-            [attr.aria-expanded]="periodMenuOpen()"
-            aria-haspopup="listbox"
-            aria-label="Choisir la période du tableau de bord"
-            (click)="togglePeriodMenu()"
-          >
-            <span>{{ selectedPeriodLabel() }}</span>
+        @if (isDashboardPage()) {
+          <div class="period-dropdown">
+            <button
+              type="button"
+              class="period-trigger"
+              [attr.aria-expanded]="periodMenuOpen()"
+              aria-haspopup="listbox"
+              aria-label="Choisir la période du tableau de bord"
+              (click)="togglePeriodMenu()"
+            >
+              <span>{{ selectedPeriodLabel() }}</span>
+              <img src="/icons/chevron-down.svg" alt="" class="period-chevron" />
+            </button>
 
-            <img src="/icons/chevron-down.svg" alt="" class="period-chevron" />
+            @if (periodMenuOpen()) {
+              <div class="period-menu" role="listbox" aria-label="Période du tableau de bord">
+                @for (period of periodOptions; track period.annee + '-' + period.mois) {
+                  <button
+                    type="button"
+                    class="period-option"
+                    role="option"
+                    [class.active]="isPeriodSelected(period)"
+                    [attr.aria-selected]="isPeriodSelected(period)"
+                    (click)="selectPeriod(period)"
+                  >
+                    {{ period.label }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <button type="button" class="button-primary" aria-label="Créer une nouvelle facture">
+            <img src="/icons/plus.svg" alt="" width="16" height="16" />
+            <span>Nouvelle facture</span>
           </button>
-
-          @if (periodMenuOpen()) {
-            <div class="period-menu" role="listbox" aria-label="Période du tableau de bord">
-              @for (period of periodOptions; track period.annee + '-' + period.mois) {
-                <button
-                  type="button"
-                  class="period-option"
-                  role="option"
-                  [class.active]="isPeriodSelected(period)"
-                  [attr.aria-selected]="isPeriodSelected(period)"
-                  (click)="selectPeriod(period)"
-                >
-                  {{ period.label }}
-                </button>
-              }
-            </div>
-          }
-        </div>
-
-        <button type="button" class="button-primary" aria-label="Créer une nouvelle facture">
-          <img src="/icons/plus.svg" alt="" width="16" height="16" />
-
-          <span>Nouvelle facture</span>
-        </button>
+        }
 
         <button type="button" class="notification-button" aria-label="Notifications">
           <img src="/icons/bell.svg" alt="" width="18" height="18" />
@@ -172,5 +173,9 @@
     <main class="content">
       <router-outlet />
     </main>
+
+    <footer class="app-footer">
+      <span>© 2026 FACTURA</span>
+    </footer>
   </div>
 </div>
