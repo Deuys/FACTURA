@@ -30,6 +30,7 @@ class ClientRepository extends ServiceEntityRepository
         'a_jour',
         'en_attente',
         'en_retard',
+        'archives',
     ];
 
     public function __construct(ManagerRegistry $registry)
@@ -65,6 +66,7 @@ class ClientRepository extends ServiceEntityRepository
             ->andWhere('c.user = :user')
             ->setParameter('user', $user);
 
+        $this->applyArchiveFilter($queryBuilder, $filtre);
         $this->applySearch($queryBuilder, $recherche);
         $this->applyFilter($queryBuilder, $filtre);
 
@@ -126,6 +128,18 @@ class ClientRepository extends ServiceEntityRepository
             );
     }
 
+    private function applyArchiveFilter(
+        QueryBuilder $queryBuilder,
+        string $filtre
+    ): void {
+        $queryBuilder
+            ->andWhere('c.archivee = :clientArchivee')
+            ->setParameter(
+                'clientArchivee',
+                $filtre === 'archives'
+            );
+    }
+
     private function applyFilter(
         QueryBuilder $queryBuilder,
         string $filtre
@@ -160,7 +174,8 @@ class ClientRepository extends ServiceEntityRepository
             ->from('App\Entity\Facture', 'f_up_to_date')
             ->where('f_up_to_date.client = c')
             ->andWhere('f_up_to_date.dateEcheance < :today')
-            ->andWhere('f_up_to_date.statut != :statutPayee');
+            ->andWhere('f_up_to_date.statut != :statutPayee')
+            ->andWhere('f_up_to_date.archivee = :factureArchivee');
 
         $queryBuilder
             ->andWhere(
@@ -177,6 +192,10 @@ class ClientRepository extends ServiceEntityRepository
             ->setParameter(
                 'statutPayee',
                 StatutFacture::PAYEE
+            )
+            ->setParameter(
+                'factureArchivee',
+                false
             );
     }
 
@@ -193,7 +212,8 @@ class ClientRepository extends ServiceEntityRepository
             ->where('f_pending.client = c')
             ->andWhere('f_pending.dateEcheance >= :today')
             ->andWhere('f_pending.statut != :statutPayee')
-            ->andWhere('f_pending.statut != :statutBrouillon');
+            ->andWhere('f_pending.statut != :statutBrouillon')
+            ->andWhere('f_pending.archivee = :factureArchivee');
 
         $queryBuilder
             ->andWhere(
@@ -212,6 +232,10 @@ class ClientRepository extends ServiceEntityRepository
             ->setParameter(
                 'statutBrouillon',
                 StatutFacture::BROUILLON
+            )
+            ->setParameter(
+                'factureArchivee',
+                false
             );
     }
 
@@ -227,7 +251,8 @@ class ClientRepository extends ServiceEntityRepository
             ->from('App\Entity\Facture', 'f_late')
             ->where('f_late.client = c')
             ->andWhere('f_late.dateEcheance < :today')
-            ->andWhere('f_late.statut != :statutPayee');
+            ->andWhere('f_late.statut != :statutPayee')
+            ->andWhere('f_late.archivee = :factureArchivee');
 
         $queryBuilder
             ->andWhere(
@@ -242,6 +267,10 @@ class ClientRepository extends ServiceEntityRepository
             ->setParameter(
                 'statutPayee',
                 StatutFacture::PAYEE
+            )
+            ->setParameter(
+                'factureArchivee',
+                false
             );
     }
 

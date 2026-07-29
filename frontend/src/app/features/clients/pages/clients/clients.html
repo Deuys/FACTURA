@@ -103,7 +103,7 @@
         }
       </div>
 
-      <button type="button" class="button-primary clients-new-button">
+      <button type="button" class="button-primary clients-new-button" (click)="openCreateForm()">
         <span aria-hidden="true">+</span>
         <span>Nouveau client</span>
       </button>
@@ -190,6 +190,7 @@
                       type="button"
                       class="client-action-button"
                       aria-label="Modifier le client"
+                      [routerLink]="['/clients', client.id, 'modifier']"
                     >
                       <img src="/icons/pencil.svg" alt="" />
                     </button>
@@ -197,9 +198,18 @@
                     <button
                       type="button"
                       class="client-action-button"
-                      aria-label="Supprimer le client"
+                      [attr.aria-label]="
+                        client.archivee ? 'Restaurer le client' : 'Archiver le client'
+                      "
+                      [attr.title]="client.archivee ? 'Restaurer le client' : 'Archiver le client'"
+                      (click)="toggleArchive(client)"
                     >
-                      <img src="/icons/trash-2.svg" alt="" />
+                      <img
+                        [src]="
+                          client.archivee ? '/icons/archive-restore.svg' : '/icons/archive.svg'
+                        "
+                        alt=""
+                      />
                     </button>
                   </div>
                 </td>
@@ -259,12 +269,26 @@
                 <img src="/icons/eye.svg" alt="" />
               </button>
 
-              <button type="button" class="client-action-button" aria-label="Modifier le client">
+              <button
+                type="button"
+                class="client-action-button"
+                aria-label="Modifier le client"
+                [routerLink]="['/clients', client.id, 'modifier']"
+              >
                 <img src="/icons/pencil.svg" alt="" />
               </button>
 
-              <button type="button" class="client-action-button" aria-label="Supprimer le client">
-                <img src="/icons/trash-2.svg" alt="" />
+              <button
+                type="button"
+                class="client-action-button"
+                [attr.aria-label]="client.archivee ? 'Restaurer le client' : 'Archiver le client'"
+                [attr.title]="client.archivee ? 'Restaurer le client' : 'Archiver le client'"
+                (click)="toggleArchive(client)"
+              >
+                <img
+                  [src]="client.archivee ? '/icons/archive-restore.svg' : '/icons/archive.svg'"
+                  alt=""
+                />
               </button>
             </div>
           </article>

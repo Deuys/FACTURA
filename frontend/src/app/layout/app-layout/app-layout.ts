@@ -127,12 +127,22 @@ export class AppLayout implements OnInit {
   private readonly currentRoute = signal(this.router.url.split('?')[0].split('#')[0]);
 
   protected readonly pageTitle = computed(() => {
+    const route = this.currentRoute();
+
+    if (route === '/clients/nouveau') {
+      return 'Ajouter un client';
+    }
+
+    if (route.startsWith('/clients/') && route.endsWith('/modifier')) {
+      return 'Modifier un client';
+    }
+
     const titles: Record<string, string> = {
       '/dashboard': 'Tableau de bord',
       '/clients': 'Clients',
     };
 
-    return titles[this.currentRoute()] ?? 'FACTURA';
+    return titles[route] ?? 'FACTURA';
   });
 
   protected readonly isDashboardPage = computed(() => this.currentRoute() === '/dashboard');

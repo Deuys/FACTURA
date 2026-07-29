@@ -1,0 +1,300 @@
+<main class="client-form-page">
+  <div class="client-form-wrapper">
+    <nav class="client-form-breadcrumb" aria-label="Fil d’Ariane">
+      <a routerLink="/clients">Clients</a>
+      <span aria-hidden="true">›</span>
+      <span>{{ pageTitle() }}</span>
+    </nav>
+
+    <header class="client-form-header">
+      <div>
+        <h2>{{ pageTitle() }}</h2>
+
+        <p>
+          @if (isEditMode()) {
+            Modifiez les informations de ce client.
+          } @else {
+            Créez une fiche client pour vos devis, factures et paiements.
+          }
+        </p>
+      </div>
+
+      <div class="client-form-header-actions">
+        <button
+          type="button"
+          class="client-form-button client-form-cancel-button"
+          (click)="cancel()"
+        >
+          Annuler
+        </button>
+
+        <button
+          type="submit"
+          form="client-form"
+          class="client-form-button client-form-submit-button"
+          [disabled]="isLoading() || isSaving()"
+        >
+          @if (isSaving()) {
+            <span class="client-form-spinner" aria-hidden="true"></span>
+            Enregistrement...
+          } @else {
+            {{ submitLabel() }}
+          }
+        </button>
+      </div>
+    </header>
+
+    @if (errorMessage(); as message) {
+      <div class="client-form-alert" role="alert">
+        {{ message }}
+      </div>
+    }
+
+    @if (isLoading()) {
+      <p class="client-form-state">Chargement du client...</p>
+    } @else {
+      <form id="client-form" [formGroup]="clientForm" (ngSubmit)="onSubmit()" novalidate>
+        <section class="client-form-section">
+          <header class="client-form-section-header">
+            <div>
+              <h3>Informations principales</h3>
+              <p>Renseignez les coordonnées du client.</p>
+            </div>
+          </header>
+
+          <div class="client-form-grid">
+            <div class="client-form-field">
+              <label for="prenom">
+                Prénom
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="prenom"
+                type="text"
+                formControlName="prenom"
+                autocomplete="given-name"
+                placeholder="Jean"
+                [attr.aria-invalid]="isFieldInvalid('prenom')"
+              />
+
+              @if (getFieldError('prenom'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="nom"> Nom du client <span class="required-marker">*</span> </label>
+
+              <input
+                id="nom"
+                type="text"
+                formControlName="nom"
+                autocomplete="family-name"
+                placeholder="Dupont"
+                [attr.aria-invalid]="isFieldInvalid('nom')"
+              />
+
+              @if (getFieldError('nom'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="entreprise">
+                Entreprise
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="entreprise"
+                type="text"
+                formControlName="entreprise"
+                autocomplete="organization"
+                placeholder="Dupont Électricité"
+                [attr.aria-invalid]="isFieldInvalid('entreprise')"
+              />
+
+              @if (getFieldError('entreprise'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="email"> E-mail <span class="required-marker">*</span> </label>
+
+              <input
+                id="email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="jean.dupont@exemple.fr"
+                [attr.aria-invalid]="isFieldInvalid('email')"
+              />
+
+              @if (getFieldError('email'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="telephone">
+                Téléphone
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="telephone"
+                type="tel"
+                formControlName="telephone"
+                autocomplete="tel"
+                placeholder="06 12 34 56 78"
+                [attr.aria-invalid]="isFieldInvalid('telephone')"
+              />
+
+              @if (getFieldError('telephone'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field client-form-field-full">
+              <label for="adresse">
+                Adresse
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="adresse"
+                type="text"
+                formControlName="adresse"
+                autocomplete="street-address"
+                placeholder="12 rue de la Paix"
+                [attr.aria-invalid]="isFieldInvalid('adresse')"
+              />
+
+              @if (getFieldError('adresse'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="codePostal">
+                Code postal
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="codePostal"
+                type="text"
+                formControlName="codePostal"
+                autocomplete="postal-code"
+                placeholder="75001"
+                [attr.aria-invalid]="isFieldInvalid('codePostal')"
+              />
+
+              @if (getFieldError('codePostal'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="ville">
+                Ville
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="ville"
+                type="text"
+                formControlName="ville"
+                autocomplete="address-level2"
+                placeholder="Paris"
+                [attr.aria-invalid]="isFieldInvalid('ville')"
+              />
+
+              @if (getFieldError('ville'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="pays"> Pays <span class="required-marker">*</span> </label>
+
+              <select
+                id="pays"
+                formControlName="pays"
+                autocomplete="country-name"
+                [attr.aria-invalid]="isFieldInvalid('pays')"
+              >
+                <option value="France">France</option>
+                <option value="Belgique">Belgique</option>
+                <option value="Suisse">Suisse</option>
+                <option value="Luxembourg">Luxembourg</option>
+                <option value="Canada">Canada</option>
+                <option value="Espagne">Espagne</option>
+                <option value="Italie">Italie</option>
+                <option value="Allemagne">Allemagne</option>
+                <option value="Royaume-Uni">Royaume-Uni</option>
+                <option value="Autre">Autre</option>
+              </select>
+
+              @if (getFieldError('pays'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+          </div>
+        </section>
+
+        <section class="client-form-section">
+          <header class="client-form-section-header">
+            <div>
+              <h3>Informations de facturation</h3>
+              <p>Ces informations peuvent apparaître sur les documents envoyés au client.</p>
+            </div>
+          </header>
+
+          <div class="client-form-grid client-form-grid-two-columns">
+            <div class="client-form-field">
+              <label for="siret">
+                Numéro SIRET
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="siret"
+                type="text"
+                formControlName="siret"
+                inputmode="numeric"
+                placeholder="12345678900012"
+                [attr.aria-invalid]="isFieldInvalid('siret')"
+              />
+
+              @if (getFieldError('siret'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+
+            <div class="client-form-field">
+              <label for="tvaIntracom">
+                Numéro de TVA intracommunautaire
+                <span class="optional-label">(facultatif)</span>
+              </label>
+
+              <input
+                id="tvaIntracom"
+                type="text"
+                formControlName="tvaIntracom"
+                placeholder="FR12345678901"
+                [attr.aria-invalid]="isFieldInvalid('tvaIntracom')"
+              />
+
+              @if (getFieldError('tvaIntracom'); as error) {
+                <p class="client-form-field-error">{{ error }}</p>
+              }
+            </div>
+          </div>
+        </section>
+      </form>
+    }
+  </div>
+</main>

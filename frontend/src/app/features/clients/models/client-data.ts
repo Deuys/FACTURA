@@ -1,11 +1,10 @@
-export type ClientFilter = 'tous' | 'nouveaux' | 'a_jour' | 'en_attente' | 'en_retard';
+export type ClientFilter = 'tous' | 'nouveaux' | 'a_jour' | 'en_attente' | 'en_retard' | 'archives';
 
 export type ClientSortField = 'nom' | 'entreprise' | 'createdAt' | 'ville';
 
 export type SortOrder = 'ASC' | 'DESC';
 
-export interface Client {
-  id: number;
+export interface ClientPayload {
   nom: string;
   prenom: string | null;
   entreprise: string | null;
@@ -17,15 +16,37 @@ export interface Client {
   pays: string;
   siret: string | null;
   tvaIntracom: string | null;
+}
+
+export interface ClientDetails extends ClientPayload {
+  id: number;
   typeDelaiPaiement: string | null;
   delaiPaiement: number | null;
   createdAt: string | null;
   updatedAt: string | null;
+  archivee: boolean;
+}
 
+export interface Client extends ClientDetails {
   nombreFactures: number;
   chiffreAffaires: string;
   montantEnCours: string;
   statut: string;
+}
+
+export interface ClientCreateResponse {
+  message: string;
+  id: number;
+}
+
+export interface ClientUpdateResponse {
+  message: string;
+  client: ClientDetails;
+}
+
+export interface ClientArchiveResponse {
+  message: string;
+  client: ClientDetails;
 }
 
 export interface ClientsFilters {

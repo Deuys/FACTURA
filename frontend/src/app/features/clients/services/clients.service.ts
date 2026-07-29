@@ -4,8 +4,13 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import {
+  ClientArchiveResponse,
+  ClientCreateResponse,
+  ClientDetails,
   ClientFilter,
+  ClientPayload,
   ClientSortField,
+  ClientUpdateResponse,
   ClientsDashboard,
   ClientsResponse,
   SortOrder,
@@ -42,6 +47,26 @@ export class ClientsService {
     }
 
     return this.http.get<ClientsResponse>(this.clientsApiUrl, { params });
+  }
+
+  getClient(id: number): Observable<ClientDetails> {
+    return this.http.get<ClientDetails>(`${this.clientsApiUrl}/${id}`);
+  }
+
+  createClient(payload: ClientPayload): Observable<ClientCreateResponse> {
+    return this.http.post<ClientCreateResponse>(this.clientsApiUrl, payload);
+  }
+
+  updateClient(id: number, payload: ClientPayload): Observable<ClientUpdateResponse> {
+    return this.http.put<ClientUpdateResponse>(`${this.clientsApiUrl}/${id}`, payload);
+  }
+
+  archiveClient(id: number): Observable<ClientArchiveResponse> {
+    return this.http.patch<ClientArchiveResponse>(`${this.clientsApiUrl}/${id}/archiver`, {});
+  }
+
+  restoreClient(id: number): Observable<ClientArchiveResponse> {
+    return this.http.patch<ClientArchiveResponse>(`${this.clientsApiUrl}/${id}/restaurer`, {});
   }
 
   getClientsDashboard(): Observable<ClientsDashboard> {

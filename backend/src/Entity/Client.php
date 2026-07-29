@@ -125,6 +125,9 @@ class Client
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $archivee = false;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
@@ -265,6 +268,17 @@ class Client
     public function setDelaiPaiement(?int $delaiPaiement): static
     {
         $this->delaiPaiement = $delaiPaiement;
+        return $this;
+    }
+    public function isArchivee(): bool
+    {
+        return $this->archivee;
+    }
+
+    public function setArchivee(bool $archivee): static
+    {
+        $this->archivee = $archivee;
+
         return $this;
     }
     public function getCreatedAt(): ?\DateTimeImmutable

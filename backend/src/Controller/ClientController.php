@@ -321,6 +321,60 @@ final class ClientController extends AbstractController
         ]);
     }
 
+    #[Route(
+        '/api/clients/{id}/archiver',
+        name: 'api_clients_archive',
+        methods: ['PATCH']
+    )]
+    public function archive(
+        Client $client,
+        EntityManagerInterface $entityManager,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($client->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Client introuvable.'],
+                JsonResponse::HTTP_NOT_FOUND
+            );
+        }
+
+        $client->setArchivee(true);
+
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Client archivé avec succès.',
+            'client' => $this->transformerClient($client),
+        ]);
+    }
+
+    #[Route(
+        '/api/clients/{id}/restaurer',
+        name: 'api_clients_restore',
+        methods: ['PATCH']
+    )]
+    public function restore(
+        Client $client,
+        EntityManagerInterface $entityManager,
+        #[CurrentUser] User $user
+    ): JsonResponse {
+        if ($client->getUser() !== $user) {
+            return $this->json(
+                ['message' => 'Client introuvable.'],
+                JsonResponse::HTTP_NOT_FOUND
+            );
+        }
+
+        $client->setArchivee(false);
+
+        $entityManager->flush();
+
+        return $this->json([
+            'message' => 'Client restauré avec succès.',
+            'client' => $this->transformerClient($client),
+        ]);
+    }
+
     #[Route('/api/clients/{id}', name: 'api_clients_delete', methods: ['DELETE'])]
     public function delete(
         Client $client,
@@ -334,11 +388,23 @@ final class ClientController extends AbstractController
             );
         }
 
+        if (
+            !$client->getFactures()->isEmpty()
+            || !$client->getDevis()->isEmpty()
+        ) {
+            return $this->json(
+                [
+                    'message' => 'Ce client est lié à des factures ou des devis. Archivez-le à la place.',
+                ],
+                JsonResponse::HTTP_CONFLICT
+            );
+        }
+
         $entityManager->remove($client);
         $entityManager->flush();
 
         return $this->json([
-            'message' => 'Client supprimé avec succès.',
+            'message' => 'Client supprimé définitivement.',
         ]);
     }
 
@@ -421,6 +487,7 @@ final class ClientController extends AbstractController
             'delaiPaiement' => $client->getDelaiPaiement(),
             'createdAt' => $client->getCreatedAt()?->format(DATE_ATOM),
             'updatedAt' => $client->getUpdatedAt()?->format(DATE_ATOM),
+            'archivee' => $client->isArchivee(),
         ];
     }
 }

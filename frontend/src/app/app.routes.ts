@@ -27,6 +27,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'clients/nouveau',
+        loadComponent: () =>
+          import('./features/clients/pages/client-form/client-form').then(
+            (component) => component.ClientForm,
+          ),
+      },
+      {
+        path: 'clients/:id/modifier',
+        loadComponent: () =>
+          import('./features/clients/pages/client-form/client-form').then(
+            (component) => component.ClientForm,
+          ),
+      },
+      {
         path: 'clients',
         loadComponent: () =>
           import('./features/clients/pages/clients/clients').then((component) => component.Clients),

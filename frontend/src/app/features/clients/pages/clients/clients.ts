@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 
 import {
   Client,
@@ -12,12 +13,13 @@ import { ClientsService } from '../../services/clients.service';
 
 @Component({
   selector: 'app-clients',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './clients.html',
   styleUrl: './clients.scss',
 })
 export class Clients {
   private readonly clientsService = inject(ClientsService);
+  private readonly router = inject(Router);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -45,11 +47,16 @@ export class Clients {
     { value: 'a_jour', label: 'À jour' },
     { value: 'en_attente', label: 'En attente' },
     { value: 'en_retard', label: 'En retard' },
+    { value: 'archives', label: 'Archivés' },
   ];
 
   constructor() {
     this.loadClients();
     this.loadDashboard();
+  }
+
+  protected openCreateForm(): void {
+    void this.router.navigate(['/clients/nouveau']);
   }
 
   protected loadClients(page = 1): void {
@@ -119,6 +126,35 @@ export class Clients {
 
     this.selectedFilter.set(filter);
     this.loadClients(1);
+  }
+
+  protected toggleArchive(client: Client): void {
+    const isArchived = client.archivee;
+    const clientName = this.getClientName(client);
+
+    const confirmationMessage = isArchived
+      ? `Restaurer le client « ${clientName} » ?`
+      : `Archiver le client « ${clientName} » ?`;
+
+    if (!window.confirm(confirmationMessage)) {
+      return;
+    }
+
+    const request$ = isArchived
+      ? this.clientsService.restoreClient(client.id)
+      : this.clientsService.archiveClient(client.id);
+
+    request$.subscribe({
+      next: () => {
+        this.loadClients(1);
+        this.loadDashboard();
+      },
+      error: () => {
+        this.errorMessage.set(
+          isArchived ? 'Impossible de restaurer le client.' : 'Impossible d’archiver le client.',
+        );
+      },
+    });
   }
 
   protected goToPage(page: number): void {

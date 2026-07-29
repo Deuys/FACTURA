@@ -98,9 +98,11 @@ final class DashboardService
             ->createQueryBuilder('c')
             ->select('COUNT(c.id)')
             ->andWhere('c.user = :user')
+            ->andWhere('c.archivee = :clientArchivee')
             ->andWhere('c.createdAt >= :debutPeriode')
             ->andWhere('c.createdAt < :finPeriode')
             ->setParameter('user', $user)
+            ->setParameter('clientArchivee', false)
             ->setParameter('debutPeriode', $debutPeriode)
             ->setParameter('finPeriode', $finPeriode)
             ->getQuery()
@@ -203,10 +205,18 @@ final class DashboardService
         $clients = $this->entityManager
             ->getRepository(Client::class)
             ->createQueryBuilder('c')
-            ->leftJoin('c.factures', 'f')
+            ->leftJoin(
+                'c.factures',
+                'f',
+                'WITH',
+                'f.archivee = :factureArchivee'
+            )
             ->addSelect('f')
             ->andWhere('c.user = :user')
+            ->andWhere('c.archivee = :clientArchivee')
             ->setParameter('user', $user)
+            ->setParameter('clientArchivee', false)
+            ->setParameter('factureArchivee', false)
             ->getQuery()
             ->getResult();
 

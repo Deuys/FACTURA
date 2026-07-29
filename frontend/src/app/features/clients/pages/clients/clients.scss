@@ -213,9 +213,9 @@
   gap: 6px;
   flex-wrap: wrap;
 }
-
 .client-filter-button {
-  min-height: 32px;
+  height: 28px;
+  min-height: 28px;
   padding: 0 12px;
   border: 0;
   border-radius: 6px;
@@ -226,6 +226,7 @@
     0 1px 3px rgb(0 0 0 / 20%);
   font-size: 11px;
   font-weight: 500;
+  line-height: 1;
   white-space: nowrap;
   transition:
     color 0.2s ease,
@@ -246,18 +247,34 @@
 }
 
 .clients-new-button {
-  min-height: 32px;
+  width: auto;
+  height: 28px;
+  min-height: 28px;
   margin-left: auto;
-  padding: 8px 13px;
+  padding: 0 13px;
+  gap: 6px;
   font-size: 11px;
+  line-height: 1;
 }
 
 .clients-new-button > span:first-child {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 400;
   line-height: 1;
 }
 
+.clients-new-button > span:last-child {
+  line-height: 14px;
+}
+.client-filter-button,
+.clients-new-button {
+  height: 28px;
+  min-height: 28px;
+}
+
+.clients-new-button {
+  padding: 0 13px;
+}
 .clients-table-wrapper {
   width: 100%;
   overflow-x: auto;
