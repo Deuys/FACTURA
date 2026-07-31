@@ -123,7 +123,13 @@
           <thead>
             <tr>
               <th class="clients-checkbox-column">
-                <input type="checkbox" aria-label="Sélectionner tous les clients" />
+                <input
+                  type="checkbox"
+                  [checked]="allClientsSelected()"
+                  [indeterminate]="someClientsSelected()"
+                  (change)="toggleAllClients($event)"
+                  aria-label="Sélectionner tous les clients"
+                />
               </th>
               <th>Client</th>
               <th>Téléphone</th>
@@ -142,6 +148,8 @@
                 <td class="clients-checkbox-column">
                   <input
                     type="checkbox"
+                    [checked]="isClientSelected(client.id)"
+                    (change)="toggleClientSelection(client.id, $event)"
                     [attr.aria-label]="'Sélectionner ' + getClientName(client)"
                   />
                 </td>
@@ -182,7 +190,13 @@
 
                 <td>
                   <div class="client-actions">
-                    <button type="button" class="client-action-button" aria-label="Voir le client">
+                    <button
+                      type="button"
+                      class="client-action-button"
+                      aria-label="Voir le client"
+                      title="Voir le client"
+                      [routerLink]="['/clients', client.id]"
+                    >
                       <img src="/icons/eye.svg" alt="" />
                     </button>
 
@@ -265,10 +279,15 @@
             </div>
 
             <div class="client-mobile-actions">
-              <button type="button" class="client-action-button" aria-label="Voir le client">
+              <button
+                type="button"
+                class="client-action-button"
+                aria-label="Voir le client"
+                title="Voir le client"
+                [routerLink]="['/clients', client.id]"
+              >
                 <img src="/icons/eye.svg" alt="" />
               </button>
-
               <button
                 type="button"
                 class="client-action-button"

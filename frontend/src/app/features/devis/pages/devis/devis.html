@@ -1,0 +1,353 @@
+<section class="devis-page">
+  <header class="devis-page-header">
+    <p>Gérez vos devis, suivez leur statut et préparez leur transformation en facture.</p>
+  </header>
+
+  <div class="section-title devis-list-title">
+    <span id="devis-list-heading">Liste des devis</span>
+  </div>
+
+  <section class="devis-list-card" aria-labelledby="devis-list-heading">
+    <div class="devis-toolbar">
+      <label class="devis-search">
+        <span aria-hidden="true">⌕</span>
+
+        <input
+          type="search"
+          placeholder="Rechercher un devis..."
+          aria-label="Rechercher un devis"
+          [value]="searchValue()"
+          (input)="onSearchInput($event)"
+        />
+      </label>
+
+      <div class="devis-filters" aria-label="Filtrer les devis">
+        @for (filter of filterOptions; track filter.value) {
+          <button
+            type="button"
+            class="devis-filter-button"
+            [class.is-active]="selectedFilter() === filter.value"
+            [attr.aria-pressed]="selectedFilter() === filter.value"
+            (click)="selectFilter(filter.value)"
+          >
+            {{ filter.label }}
+          </button>
+        }
+      </div>
+
+      @if (selectedDevisCount() > 0) {
+        <button
+          type="button"
+          class="devis-delete-selected-button"
+          [disabled]="isDeleting()"
+          (click)="deleteSelectedDevis()"
+        >
+          <img src="/icons/trash-2.svg" alt="" width="14" height="14" />
+          <span>Supprimer ({{ selectedDevisCount() }})</span>
+        </button>
+      }
+
+      <button type="button" class="button-primary devis-new-button">
+        <span aria-hidden="true">+</span>
+        <span>Nouveau devis</span>
+      </button>
+    </div>
+
+    @if (isLoading()) {
+      <p class="devis-state-message">Chargement des devis...</p>
+    } @else if (errorMessage(); as error) {
+      <p class="devis-state-message devis-state-error">
+        {{ error }}
+      </p>
+    } @else if (devis().length === 0) {
+      <p class="devis-state-message">Aucun devis trouvé.</p>
+    } @else {
+      <div class="devis-table-wrapper">
+        <table class="devis-table">
+          <thead>
+            <tr>
+              <th class="devis-checkbox-column">
+                <input
+                  type="checkbox"
+                  [checked]="allDevisSelected()"
+                  [indeterminate]="someDevisSelected()"
+                  [disabled]="deletableDevis().length === 0 || isDeleting()"
+                  (change)="toggleAllDevis($event)"
+                  aria-label="Sélectionner les devis supprimables"
+                />
+              </th>
+
+              <th>Référence</th>
+              <th>Client</th>
+              <th>Date</th>
+              <th>Validité</th>
+              <th>Montant HT</th>
+              <th>TVA</th>
+              <th>Total TTC</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (devisItem of devis(); track devisItem.id) {
+              <tr>
+                <td class="devis-checkbox-column">
+                  <input
+                    type="checkbox"
+                    [checked]="isDevisSelected(devisItem.id)"
+                    [disabled]="!canDeleteDevis(devisItem) || isDeleting()"
+                    [attr.title]="
+                      canDeleteDevis(devisItem)
+                        ? 'Sélectionner le devis'
+                        : 'Ce devis ne peut pas être supprimé'
+                    "
+                    [attr.aria-label]="'Sélectionner ' + devisItem.numero"
+                    (change)="toggleDevisSelection(devisItem, $event)"
+                  />
+                </td>
+
+                <td class="devis-reference-cell">
+                  {{ devisItem.numero }}
+                </td>
+
+                <td class="devis-client-cell">
+                  <div class="devis-client">
+                    <span class="devis-client-avatar">
+                      {{ getClientInitials(devisItem.client) }}
+                    </span>
+
+                    <span class="devis-client-text">
+                      <strong>
+                        {{ getClientName(devisItem.client) }}
+                      </strong>
+
+                      @if (devisItem.client.entreprise) {
+                        <small>{{ devisItem.client.entreprise }}</small>
+                      }
+                    </span>
+                  </div>
+                </td>
+
+                <td>{{ formatDate(devisItem.dateEmission) }}</td>
+
+                <td>{{ formatDate(devisItem.dateValidite) }}</td>
+
+                <td>{{ formatCurrency(devisItem.totalHT) }}</td>
+
+                <td>{{ formatCurrency(devisItem.totalTVA) }}</td>
+
+                <td class="devis-total-cell">
+                  {{ formatCurrency(devisItem.totalTTC) }}
+                </td>
+
+                <td>
+                  <span [class]="'devis-status-badge ' + getDevisStatusClass(devisItem.statut)">
+                    {{ devisItem.statut }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="devis-actions">
+                    <button
+                      type="button"
+                      class="devis-action-button"
+                      aria-label="Voir le devis"
+                      title="Voir le devis"
+                    >
+                      <img src="/icons/eye.svg" alt="" />
+                    </button>
+
+                    <button
+                      type="button"
+                      class="devis-action-button"
+                      aria-label="Modifier le devis"
+                      title="Modifier le devis"
+                    >
+                      <img src="/icons/pencil.svg" alt="" />
+                    </button>
+
+                    <button
+                      type="button"
+                      class="devis-action-button"
+                      aria-label="Transformer le devis en facture"
+                      title="Transformer en facture"
+                    >
+                      <img src="/icons/receipt.svg" alt="" />
+                    </button>
+
+                    @if (canDeleteDevis(devisItem)) {
+                      <button
+                        type="button"
+                        class="devis-action-button devis-delete-button"
+                        aria-label="Supprimer le devis"
+                        title="Supprimer le devis"
+                        [disabled]="isDeleting()"
+                        (click)="deleteDevis(devisItem)"
+                      >
+                        <img src="/icons/trash-2.svg" alt="" />
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="devis-mobile-selection">
+        <label>
+          <input
+            type="checkbox"
+            [checked]="allDevisSelected()"
+            [indeterminate]="someDevisSelected()"
+            [disabled]="deletableDevis().length === 0 || isDeleting()"
+            (change)="toggleAllDevis($event)"
+            aria-label="Sélectionner les devis supprimables"
+          />
+          <span>Sélectionner les devis supprimables</span>
+        </label>
+      </div>
+
+      <div class="devis-mobile-list">
+        @for (devisItem of devis(); track devisItem.id) {
+          <article class="devis-mobile-card">
+            <div class="devis-mobile-card-header">
+              <div class="devis-mobile-client">
+                <input
+                  type="checkbox"
+                  [checked]="isDevisSelected(devisItem.id)"
+                  [disabled]="!canDeleteDevis(devisItem) || isDeleting()"
+                  (change)="toggleDevisSelection(devisItem, $event)"
+                  [attr.aria-label]="'Sélectionner ' + devisItem.numero"
+                />
+
+                <span class="devis-client-avatar">
+                  {{ getClientInitials(devisItem.client) }}
+                </span>
+
+                <span class="devis-client-text">
+                  <strong>{{ getClientName(devisItem.client) }}</strong>
+
+                  @if (devisItem.client.entreprise) {
+                    <small>{{ devisItem.client.entreprise }}</small>
+                  }
+                </span>
+              </div>
+
+              <span [class]="'devis-status-badge ' + getDevisStatusClass(devisItem.statut)">
+                {{ devisItem.statut }}
+              </span>
+            </div>
+
+            <div class="devis-mobile-reference">
+              <strong>{{ devisItem.numero }}</strong>
+              <span> Émission : {{ formatDate(devisItem.dateEmission) }} </span>
+              <span> Validité : {{ formatDate(devisItem.dateValidite) }} </span>
+            </div>
+
+            <div class="devis-mobile-metrics">
+              <div>
+                <span>Montant HT</span>
+                <strong>{{ formatCurrency(devisItem.totalHT) }}</strong>
+              </div>
+
+              <div>
+                <span>TVA</span>
+                <strong>{{ formatCurrency(devisItem.totalTVA) }}</strong>
+              </div>
+
+              <div>
+                <span>Total TTC</span>
+                <strong>{{ formatCurrency(devisItem.totalTTC) }}</strong>
+              </div>
+            </div>
+
+            <div class="devis-mobile-actions">
+              <button
+                type="button"
+                class="devis-action-button"
+                aria-label="Voir le devis"
+                title="Voir le devis"
+              >
+                <img src="/icons/eye.svg" alt="" />
+              </button>
+
+              <button
+                type="button"
+                class="devis-action-button"
+                aria-label="Modifier le devis"
+                title="Modifier le devis"
+              >
+                <img src="/icons/pencil.svg" alt="" />
+              </button>
+
+              <button
+                type="button"
+                class="devis-action-button"
+                aria-label="Transformer le devis en facture"
+                title="Transformer en facture"
+              >
+                <img src="/icons/receipt.svg" alt="" />
+              </button>
+
+              @if (canDeleteDevis(devisItem)) {
+                <button
+                  type="button"
+                  class="devis-action-button devis-delete-button"
+                  aria-label="Supprimer le devis"
+                  title="Supprimer le devis"
+                  [disabled]="isDeleting()"
+                  (click)="deleteDevis(devisItem)"
+                >
+                  <img src="/icons/trash-2.svg" alt="" />
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (pagination(); as page) {
+        <footer class="devis-table-footer">
+          <span>{{ page.total }} devis</span>
+
+          <div class="devis-pagination" aria-label="Pagination des devis">
+            <button
+              type="button"
+              class="devis-pagination-button"
+              aria-label="Page précédente"
+              [disabled]="!page.hasPreviousPage"
+              (click)="goToPreviousPage()"
+            >
+              ‹
+            </button>
+
+            @for (pageNumber of getPageNumbers(); track pageNumber) {
+              <button
+                type="button"
+                class="devis-pagination-button"
+                [class.is-active]="pageNumber === currentPage()"
+                [attr.aria-current]="pageNumber === currentPage() ? 'page' : null"
+                (click)="goToPage(pageNumber)"
+              >
+                {{ pageNumber }}
+              </button>
+            }
+
+            <button
+              type="button"
+              class="devis-pagination-button"
+              aria-label="Page suivante"
+              [disabled]="!page.hasNextPage"
+              (click)="goToNextPage()"
+            >
+              ›
+            </button>
+          </div>
+        </footer>
+      }
+    }
+  </section>
+</section>

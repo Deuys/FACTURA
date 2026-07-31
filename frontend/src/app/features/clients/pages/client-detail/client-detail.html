@@ -1,0 +1,161 @@
+<section class="client-detail-page" aria-labelledby="client-detail-title">
+  @if (isLoading()) {
+    <p class="client-detail-message">Chargement du client...</p>
+  } @else if (errorMessage(); as message) {
+    <div class="client-detail-error" role="alert">
+      <p>{{ message }}</p>
+      <button type="button" class="client-detail-button" (click)="goBack()">
+        Retour aux clients
+      </button>
+    </div>
+  } @else if (client(); as currentClient) {
+    <div class="client-detail-breadcrumb">
+      <a routerLink="/clients">Clients</a>
+      <span>›</span>
+      <span>Fiche client</span>
+    </div>
+
+    <header class="client-detail-header">
+      <div class="client-detail-identity">
+        <div class="client-detail-avatar">
+          {{ getInitials(currentClient) }}
+        </div>
+
+        <div>
+          <p class="client-detail-kicker">Fiche client</p>
+          <h2 id="client-detail-title">{{ clientName() }}</h2>
+          <p>{{ currentClient.entreprise || 'Client particulier' }}</p>
+        </div>
+      </div>
+
+      <div class="client-detail-actions">
+        <a routerLink="/clients" class="client-detail-button"> Retour </a>
+
+        <a
+          class="client-detail-button client-detail-button-primary"
+          [routerLink]="['/clients', currentClient.id, 'modifier']"
+        >
+          Modifier
+        </a>
+      </div>
+    </header>
+
+    <div class="client-detail-status-row">
+      <span class="client-detail-status" [class.is-archived]="currentClient.archivee">
+        {{ currentClient.archivee ? 'Archivé' : 'Actif' }}
+      </span>
+    </div>
+    <section class="client-financial-summary" aria-label="Résumé financier du client">
+      <article class="client-financial-card">
+        <span>Factures</span>
+        <strong>{{ currentClient.nombreFactures }}</strong>
+      </article>
+
+      <article class="client-financial-card">
+        <span>Chiffre d’affaires</span>
+        <strong>{{ formatCurrency(currentClient.chiffreAffaires) }}</strong>
+      </article>
+
+      <article class="client-financial-card">
+        <span>Montant en cours</span>
+        <strong>{{ formatCurrency(currentClient.montantEnCours) }}</strong>
+      </article>
+
+      <article class="client-financial-card">
+        <span>Statut</span>
+        <strong [class]="'client-financial-status ' + getStatusClass(currentClient.statut)">
+          {{ currentClient.statut }}
+        </strong>
+      </article>
+    </section>
+
+    <div class="client-detail-grid">
+      <section class="client-detail-card">
+        <h3>Informations principales</h3>
+
+        <dl class="client-detail-fields">
+          <div>
+            <dt>Prénom</dt>
+            <dd>{{ currentClient.prenom || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>Nom</dt>
+            <dd>{{ currentClient.nom }}</dd>
+          </div>
+
+          <div>
+            <dt>Entreprise</dt>
+            <dd>{{ currentClient.entreprise || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>E-mail</dt>
+            <dd>
+              <a [href]="'mailto:' + currentClient.email">
+                {{ currentClient.email }}
+              </a>
+            </dd>
+          </div>
+
+          <div>
+            <dt>Téléphone</dt>
+            <dd>{{ formatPhone(currentClient.telephone) }}</dd>
+          </div>
+
+          <div class="client-detail-field-full">
+            <dt>Adresse</dt>
+            <dd>{{ currentClient.adresse || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>Code postal</dt>
+            <dd>{{ currentClient.codePostal || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>Ville</dt>
+            <dd>{{ currentClient.ville || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>Pays</dt>
+            <dd>{{ currentClient.pays }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="client-detail-card">
+        <h3>Informations de facturation</h3>
+
+        <dl class="client-detail-fields">
+          <div>
+            <dt>Numéro SIRET</dt>
+            <dd>{{ currentClient.siret || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>TVA intracommunautaire</dt>
+            <dd>{{ currentClient.tvaIntracom || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>Type de délai de paiement</dt>
+            <dd>{{ currentClient.typeDelaiPaiement || '—' }}</dd>
+          </div>
+
+          <div>
+            <dt>Délai de paiement</dt>
+            <dd>
+              @if (currentClient.delaiPaiement !== null) {
+                {{ currentClient.delaiPaiement }} jours
+              } @else {
+                —
+              }
+            </dd>
+          </div>
+        </dl>
+      </section>
+    </div>
+  }
+</section>

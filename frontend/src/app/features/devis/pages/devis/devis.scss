@@ -1,0 +1,696 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.devis-page {
+  width: 100%;
+  min-width: 0;
+}
+
+.devis-page-header {
+  margin-bottom: 24px;
+}
+
+.devis-page-header p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.section-title span {
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.section-title::after {
+  height: 1px;
+  flex: 1;
+  content: '';
+  background: var(--color-border);
+}
+
+.devis-list-title {
+  margin-top: 8px;
+}
+
+.devis-list-card {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: var(--shadow-surface);
+}
+
+.devis-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.devis-search {
+  width: 230px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 12%);
+}
+
+.devis-search:focus-within {
+  border-color: var(--color-primary);
+  outline: 2px solid rgb(37 99 235 / 12%);
+}
+
+.devis-search > span {
+  color: var(--color-text-neutral);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.devis-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--color-text-primary);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.devis-search input::placeholder {
+  color: var(--color-text-neutral);
+}
+
+.devis-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.devis-filter-button {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  background: #ffffff;
+  box-shadow:
+    0 4px 8px 3px rgb(0 0 0 / 10%),
+    0 1px 3px rgb(0 0 0 / 20%);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.devis-filter-button:hover:not(.is-active) {
+  color: var(--color-primary);
+  background: rgb(37 99 235 / 5%);
+}
+
+.devis-filter-button.is-active {
+  color: #ffffff;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-button);
+  font-weight: 600;
+}
+
+.devis-new-button {
+  width: auto;
+  height: 28px;
+  min-height: 28px;
+  margin-left: auto;
+  padding: 0 13px;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.devis-new-button > span:first-child {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.devis-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.devis-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.devis-table th {
+  height: 38px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.devis-table td {
+  height: 52px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(229 231 235 / 75%);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.devis-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.devis-table tbody tr:hover {
+  background: rgb(37 99 235 / 3%);
+}
+
+.devis-table th:nth-child(1),
+.devis-table td:nth-child(1) {
+  width: 13%;
+}
+
+.devis-table th:nth-child(2),
+.devis-table td:nth-child(2) {
+  width: 18%;
+}
+
+.devis-table th:nth-child(3),
+.devis-table td:nth-child(3),
+.devis-table th:nth-child(4),
+.devis-table td:nth-child(4) {
+  width: 10%;
+}
+
+.devis-table th:nth-child(5),
+.devis-table td:nth-child(5),
+.devis-table th:nth-child(6),
+.devis-table td:nth-child(6) {
+  width: 10%;
+}
+
+.devis-table th:nth-child(7),
+.devis-table td:nth-child(7) {
+  width: 11%;
+}
+
+.devis-table th:nth-child(8),
+.devis-table td:nth-child(8) {
+  width: 9%;
+}
+
+.devis-table th:nth-child(9),
+.devis-table td:nth-child(9) {
+  width: 9%;
+}
+
+.devis-reference-cell {
+  color: var(--color-text-primary) !important;
+  font-weight: 700 !important;
+}
+
+.devis-client {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.devis-client-avatar {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: rgb(37 99 235 / 10%);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.devis-client-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.devis-client-text strong,
+.devis-client-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.devis-client-text strong {
+  color: var(--color-text-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.devis-client-text small {
+  color: var(--color-text-secondary);
+  font-size: 9px;
+}
+
+.devis-total-cell {
+  color: var(--color-text-primary) !important;
+  font-weight: 700 !important;
+}
+
+.devis-status-badge {
+  min-width: 68px;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+}
+
+.devis-status-draft {
+  color: var(--color-primary);
+  background: var(--badge-info-background);
+}
+
+.devis-status-sent {
+  color: #2563eb;
+  background: var(--badge-info-background);
+}
+
+.devis-status-accepted {
+  color: var(--color-success);
+  background: var(--badge-success-background);
+}
+
+.devis-status-refused {
+  color: var(--color-danger);
+  background: var(--badge-danger-background);
+}
+
+.devis-status-pending {
+  color: var(--color-warning);
+  background: var(--badge-warning-background);
+}
+
+.devis-status-expired,
+.devis-status-unknown {
+  color: var(--color-text-neutral);
+  background: rgb(107 114 128 / 12%);
+}
+
+.devis-status-transformed {
+  color: #7c3aed;
+  background: var(--badge-violet-background);
+}
+
+.devis-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.devis-action-button {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: #ffffff;
+  box-shadow:
+    0 2px 4px rgb(0 0 0 / 8%),
+    0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.devis-action-button img {
+  width: 13px;
+  height: 13px;
+  display: block;
+  opacity: 0.72;
+}
+
+.devis-action-button:hover {
+  border-color: transparent;
+  background: rgb(37 99 235 / 8%);
+  box-shadow:
+    0 4px 8px rgb(0 0 0 / 12%),
+    0 1px 3px rgb(0 0 0 / 10%);
+}
+
+.devis-action-button:hover img {
+  opacity: 1;
+}
+
+.devis-table-footer {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-neutral);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.devis-pagination {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.devis-pagination-button {
+  width: 23px;
+  height: 23px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-small);
+  color: var(--color-text-primary);
+  background: #ffffff;
+  box-shadow:
+    0 4px 8px 3px rgb(0 0 0 / 10%),
+    0 1px 3px rgb(0 0 0 / 20%);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.devis-pagination-button:hover:not(:disabled):not(.is-active) {
+  color: var(--color-primary);
+  background: rgb(37 99 235 / 6%);
+}
+
+.devis-pagination-button.is-active {
+  color: #ffffff;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-button);
+}
+
+.devis-pagination-button:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.devis-state-message {
+  margin: 0;
+  padding: 42px 20px;
+  color: var(--color-text-neutral);
+  font-size: 12px;
+  text-align: center;
+}
+
+.devis-state-error {
+  color: var(--color-danger);
+}
+
+.devis-checkbox-column {
+  width: 42px !important;
+  padding-right: 2px !important;
+  padding-left: 16px !important;
+  text-align: center !important;
+}
+
+.devis-table input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.devis-table input[type='checkbox']:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.devis-delete-selected-button {
+  height: 28px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-danger);
+  background: var(--badge-danger-background);
+  box-shadow:
+    0 3px 7px rgb(0 0 0 / 10%),
+    0 1px 2px rgb(0 0 0 / 10%);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.devis-delete-selected-button:hover:not(:disabled) {
+  background: rgb(239 68 68 / 16%);
+}
+
+.devis-delete-selected-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.devis-delete-button:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: var(--badge-danger-background);
+}
+
+.devis-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 1200px) {
+  .devis-toolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .devis-new-button {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .devis-toolbar {
+    flex-direction: column;
+  }
+
+  .devis-search {
+    width: 100%;
+  }
+
+  .devis-filters {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .devis-filter-button {
+    width: 100%;
+  }
+
+  .devis-new-button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .devis-table-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .devis-pagination {
+    align-self: flex-end;
+  }
+}
+.devis-mobile-selection,
+.devis-mobile-list {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .devis-table-wrapper {
+    display: none;
+  }
+
+  .devis-mobile-selection {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+  }
+
+  .devis-mobile-selection label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .devis-mobile-selection input,
+  .devis-mobile-client input {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    accent-color: var(--color-primary);
+  }
+
+  .devis-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .devis-mobile-card {
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow:
+      0 3px 6px rgb(0 0 0 / 8%),
+      0 1px 2px rgb(0 0 0 / 6%);
+  }
+
+  .devis-mobile-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .devis-mobile-client {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .devis-mobile-client .devis-client-text {
+    max-width: 145px;
+  }
+
+  .devis-mobile-reference {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .devis-mobile-reference strong {
+    color: var(--color-text-primary);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .devis-mobile-reference span {
+    color: var(--color-text-secondary);
+    font-size: 10px;
+    line-height: 15px;
+  }
+
+  .devis-mobile-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .devis-mobile-metrics div {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .devis-mobile-metrics span {
+    color: var(--color-text-neutral);
+    font-size: 9px;
+    line-height: 13px;
+  }
+
+  .devis-mobile-metrics strong {
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 10px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .devis-mobile-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+    margin-top: 12px;
+  }
+
+  .devis-delete-selected-button {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .devis-mobile-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .devis-mobile-metrics div:last-child {
+    grid-column: 1 / -1;
+  }
+}

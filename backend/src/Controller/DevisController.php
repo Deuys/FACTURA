@@ -40,6 +40,23 @@ final class DevisController extends AbstractController
             $request->query->getString('ordre', 'DESC')
         );
 
+        $page = $request->query->getInt('page', 1);
+        $limit = $request->query->getInt('limit', 20);
+
+        if ($page < 1) {
+            return $this->json(
+                ['message' => 'Le numéro de page doit être supérieur à 0.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
+        if ($limit < 1 || $limit > 100) {
+            return $this->json(
+                ['message' => 'La limite doit être comprise entre 1 et 100.'],
+                JsonResponse::HTTP_BAD_REQUEST
+            );
+        }
+
         $statut = null;
 
         if (
@@ -74,13 +91,18 @@ final class DevisController extends AbstractController
             );
         }
 
-        $devis = $devisRepository->findForUserWithFilters(
+        $resultats = $devisRepository->findForUserWithFilters(
             user: $user,
             recherche: $recherche,
             statut: $statut,
             tri: $tri,
-            ordre: $ordre
+            ordre: $ordre,
+            page: $page,
+            limit: $limit
         );
+
+        $devis = $resultats['devis'];
+        $total = $resultats['total'];
 
         $data = array_map(
             static fn(Devis $devis): array => [
@@ -115,6 +137,10 @@ final class DevisController extends AbstractController
             $devis
         );
 
+        $totalPages = $total > 0
+            ? (int) ceil($total / $limit)
+            : 0;
+
         return $this->json([
             'filtres' => [
                 'recherche' => $recherche,
@@ -122,7 +148,16 @@ final class DevisController extends AbstractController
                 'tri' => $tri,
                 'ordre' => $ordre,
             ],
-            'nombreResultats' => count($data),
+            'nombreResultats' => $total,
+            'nombreResultatsPage' => count($data),
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'totalPages' => $totalPages,
+                'hasPreviousPage' => $page > 1,
+                'hasNextPage' => $page < $totalPages,
+            ],
             'devis' => $data,
         ]);
     }
@@ -697,6 +732,20 @@ final class DevisController extends AbstractController
             return $this->json(
                 ['message' => 'Accès refusé.'],
                 JsonResponse::HTTP_FORBIDDEN
+            );
+        }
+        $statutsSupprimables = [
+            StatutDevis::BROUILLON,
+            StatutDevis::REFUSE,
+            StatutDevis::EXPIRE,
+        ];
+
+        if (!in_array($devis->getStatut(), $statutsSupprimables, true)) {
+            return $this->json(
+                [
+                    'message' => 'Ce devis ne peut pas être supprimé dans son état actuel.',
+                ],
+                JsonResponse::HTTP_CONFLICT
             );
         }
 

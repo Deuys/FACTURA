@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import {
@@ -38,6 +38,26 @@ export class Clients {
   protected readonly currentPage = signal(1);
   protected readonly pageSize = 20;
 
+  protected readonly selectedClientIds = signal<Set<number>>(new Set<number>());
+
+  protected readonly allClientsSelected = computed(() => {
+    const currentClients = this.clients();
+    const selectedIds = this.selectedClientIds();
+
+    return (
+      currentClients.length > 0 && currentClients.every((client) => selectedIds.has(client.id))
+    );
+  });
+
+  protected readonly someClientsSelected = computed(() => {
+    const currentClients = this.clients();
+    const selectedIds = this.selectedClientIds();
+
+    const selectedCount = currentClients.filter((client) => selectedIds.has(client.id)).length;
+
+    return selectedCount > 0 && selectedCount < currentClients.length;
+  });
+
   protected readonly filterOptions: ReadonlyArray<{
     value: ClientFilter;
     label: string;
@@ -60,6 +80,8 @@ export class Clients {
   }
 
   protected loadClients(page = 1): void {
+    this.selectedClientIds.set(new Set<number>());
+
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
@@ -126,6 +148,38 @@ export class Clients {
 
     this.selectedFilter.set(filter);
     this.loadClients(1);
+  }
+
+  protected toggleAllClients(event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    const nextSelectedIds = new Set(this.selectedClientIds());
+
+    for (const client of this.clients()) {
+      if (checkbox.checked) {
+        nextSelectedIds.add(client.id);
+      } else {
+        nextSelectedIds.delete(client.id);
+      }
+    }
+
+    this.selectedClientIds.set(nextSelectedIds);
+  }
+
+  protected toggleClientSelection(clientId: number, event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    const nextSelectedIds = new Set(this.selectedClientIds());
+
+    if (checkbox.checked) {
+      nextSelectedIds.add(clientId);
+    } else {
+      nextSelectedIds.delete(clientId);
+    }
+
+    this.selectedClientIds.set(nextSelectedIds);
+  }
+
+  protected isClientSelected(clientId: number): boolean {
+    return this.selectedClientIds().has(clientId);
   }
 
   protected toggleArchive(client: Client): void {

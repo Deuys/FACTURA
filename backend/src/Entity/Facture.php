@@ -14,10 +14,15 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 
 #[ORM\Entity(repositoryClass: FactureRepository::class)]
+#[ORM\Table(name: 'facture')]
+#[ORM\UniqueConstraint(
+    name: 'UNIQ_FACTURE_USER_NUMERO',
+    columns: ['user_id', 'numero']
+)]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(
-    fields: ['numero'],
-    message: 'Ce numéro de facture existe déjà.'
+    fields: ['user', 'numero'],
+    message: 'Ce numéro de facture existe déjà pour cet utilisateur.'
 )]
 class Facture
 {
@@ -26,7 +31,7 @@ class Facture
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 30, unique: true)]
+    #[ORM\Column(length: 30)]
     #[Assert\NotBlank(message: 'Le numéro de facture est obligatoire.')]
     #[Assert\Length(
         max: 30,

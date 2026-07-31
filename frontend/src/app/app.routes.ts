@@ -41,6 +41,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'clients/:id',
+        loadComponent: () =>
+          import('./features/clients/pages/client-detail/client-detail').then(
+            (component) => component.ClientDetail,
+          ),
+      },
+      {
         path: 'clients',
         loadComponent: () =>
           import('./features/clients/pages/clients/clients').then((component) => component.Clients),
@@ -49,6 +56,11 @@ export const routes: Routes = [
         path: '',
         pathMatch: 'full',
         redirectTo: 'dashboard',
+      },
+      {
+        path: 'devis',
+        loadComponent: () =>
+          import('./features/devis/pages/devis/devis').then((component) => component.Devis),
       },
     ],
   },

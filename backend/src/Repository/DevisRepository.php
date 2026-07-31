@@ -19,17 +19,22 @@ class DevisRepository extends ServiceEntityRepository
     }
 
     /**
-     * Recherche, filtre et trie les devis d'un utilisateur.
+     * Recherche, filtre, trie et pagine les devis d'un utilisateur.
      *
-     * @return Devis[]
+     * @return array{devis: Devis[], total: int}
      */
     public function findForUserWithFilters(
         User $user,
         ?string $recherche = null,
         ?StatutDevis $statut = null,
         string $tri = 'dateEmission',
-        string $ordre = 'DESC'
+        string $ordre = 'DESC',
+        int $page = 1,
+        int $limit = 20
     ): array {
+        $page = max(1, $page);
+        $limit = max(1, min(100, $limit));
+
         $qb = $this->createQueryBuilder('d')
             ->leftJoin('d.client', 'c')
             ->addSelect('c')
@@ -68,10 +73,22 @@ class DevisRepository extends ServiceEntityRepository
         $champTri = $trisAutorises[$tri] ?? 'd.dateEmission';
         $ordre = strtoupper($ordre) === 'ASC' ? 'ASC' : 'DESC';
 
-        return $qb
+        $total = (int) (clone $qb)
+            ->select('COUNT(d.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $devis = $qb
             ->orderBy($champTri, $ordre)
             ->addOrderBy('d.id', 'DESC')
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+
+        return [
+            'devis' => $devis,
+            'total' => $total,
+        ];
     }
 }

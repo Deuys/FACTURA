@@ -137,9 +137,13 @@ export class AppLayout implements OnInit {
       return 'Modifier un client';
     }
 
+    if (/^\/clients\/\d+$/.test(route)) {
+      return 'Fiche client';
+    }
     const titles: Record<string, string> = {
       '/dashboard': 'Tableau de bord',
       '/clients': 'Clients',
+      '/devis': 'Devis',
     };
 
     return titles[route] ?? 'FACTURA';

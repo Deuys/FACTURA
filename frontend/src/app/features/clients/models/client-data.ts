@@ -25,14 +25,13 @@ export interface ClientDetails extends ClientPayload {
   createdAt: string | null;
   updatedAt: string | null;
   archivee: boolean;
-}
-
-export interface Client extends ClientDetails {
   nombreFactures: number;
   chiffreAffaires: string;
   montantEnCours: string;
   statut: string;
 }
+
+export interface Client extends ClientDetails {}
 
 export interface ClientCreateResponse {
   message: string;

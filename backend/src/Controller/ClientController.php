@@ -230,6 +230,7 @@ final class ClientController extends AbstractController
     #[Route('/api/clients/{id}', name: 'api_clients_show', methods: ['GET'])]
     public function show(
         Client $client,
+        ClientRepository $clientRepository,
         #[CurrentUser] User $user
     ): JsonResponse {
         if ($client->getUser() !== $user) {
@@ -239,7 +240,24 @@ final class ClientController extends AbstractController
             );
         }
 
-        return $this->json($this->transformerClient($client));
+        $statistics = $clientRepository->getStatisticsForClients(
+            user: $user,
+            clients: [$client]
+        );
+
+        $clientStatistics = $statistics[$client->getId() ?? 0] ?? [
+            'nombreFactures' => 0,
+            'chiffreAffaires' => '0.00',
+            'montantEnCours' => '0.00',
+            'statut' => 'À jour',
+        ];
+
+        return $this->json(
+            array_merge(
+                $this->transformerClient($client),
+                $clientStatistics
+            )
+        );
     }
 
     #[Route('/api/clients/{id}', name: 'api_clients_update', methods: ['PUT'])]
