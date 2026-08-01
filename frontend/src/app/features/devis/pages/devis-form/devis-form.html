@@ -1,0 +1,310 @@
+<section class="devis-form-page" aria-labelledby="devis-form-title">
+  <div class="devis-form-wrapper">
+    <div class="devis-form-breadcrumb">
+      <a routerLink="/devis">Devis</a>
+      <span aria-hidden="true">›</span>
+      <span>{{ pageTitle() }}</span>
+    </div>
+
+    <header class="devis-form-header">
+      <div>
+        <h2 id="devis-form-title">{{ pageTitle() }}</h2>
+
+        <p>
+          {{
+            isEditMode()
+              ? 'Modifiez les informations de ce devis.'
+              : 'Créez un nouveau devis à envoyer à votre client.'
+          }}
+        </p>
+      </div>
+
+      <div class="devis-form-header-actions">
+        <button type="button" class="devis-form-button devis-form-cancel-button" (click)="cancel()">
+          Annuler
+        </button>
+
+        <button
+          type="submit"
+          form="devis-form"
+          class="devis-form-button devis-form-submit-button"
+          [disabled]="isSaving() || isLoading() || isOptionsLoading()"
+        >
+          @if (isSaving()) {
+            <span class="devis-form-spinner" aria-hidden="true"></span>
+          }
+
+          <span>{{ submitLabel() }}</span>
+        </button>
+      </div>
+    </header>
+
+    @if (errorMessage(); as error) {
+      <div class="devis-form-alert" role="alert">
+        {{ error }}
+      </div>
+    }
+
+    @if (isLoading()) {
+      <p class="devis-form-state">Chargement du devis...</p>
+    } @else {
+      <form id="devis-form" [formGroup]="devisForm" (ngSubmit)="onSubmit()" novalidate>
+        <section class="devis-form-section">
+          <header class="devis-form-section-header">
+            <h3>Informations générales</h3>
+            <p>Renseignez les informations de base du devis.</p>
+          </header>
+
+          <div class="devis-form-grid">
+            <div class="devis-form-field">
+              <label for="devis-reference">Référence</label>
+
+              <input
+                id="devis-reference"
+                type="text"
+                [value]="numero() ?? 'Généré automatiquement'"
+                readonly
+              />
+
+              @if (!numero()) {
+                <small class="devis-form-help">
+                  La référence sera générée à l’enregistrement.
+                </small>
+              }
+            </div>
+
+            <div class="devis-form-field">
+              <label for="devis-client">
+                Client
+                <span class="required-marker" aria-hidden="true">*</span>
+              </label>
+
+              <select
+                id="devis-client"
+                formControlName="clientId"
+                [attr.aria-invalid]="isFieldInvalid('clientId')"
+              >
+                <option [ngValue]="null">Sélectionner un client</option>
+
+                @for (client of clients(); track client.id) {
+                  <option [ngValue]="client.id">
+                    {{ getClientName(client) }}
+                    {{ client.entreprise ? ' — ' + client.entreprise : '' }}
+                  </option>
+                }
+              </select>
+
+              @if (getFieldError('clientId'); as error) {
+                <p class="devis-form-field-error">
+                  {{ error }}
+                </p>
+              }
+            </div>
+
+            <div class="devis-form-field">
+              <label for="devis-date-emission">
+                Date du devis
+                <span class="required-marker" aria-hidden="true">*</span>
+              </label>
+
+              <input
+                id="devis-date-emission"
+                type="date"
+                formControlName="dateEmission"
+                [attr.aria-invalid]="isFieldInvalid('dateEmission')"
+              />
+
+              @if (getFieldError('dateEmission'); as error) {
+                <p class="devis-form-field-error">
+                  {{ error }}
+                </p>
+              }
+            </div>
+
+            <div class="devis-form-field">
+              <label for="devis-date-validite">
+                Date de validité
+                <span class="required-marker" aria-hidden="true">*</span>
+              </label>
+
+              <input
+                id="devis-date-validite"
+                type="date"
+                formControlName="dateValidite"
+                [attr.aria-invalid]="isFieldInvalid('dateValidite')"
+              />
+
+              @if (getFieldError('dateValidite'); as error) {
+                <p class="devis-form-field-error">
+                  {{ error }}
+                </p>
+              }
+            </div>
+
+            <div class="devis-form-field">
+              <label for="devis-statut">Statut</label>
+
+              <select id="devis-statut" formControlName="statut">
+                @for (status of statusOptions; track status.value) {
+                  <option [ngValue]="status.value">
+                    {{ status.label }}
+                  </option>
+                }
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section class="devis-form-section">
+          <header class="devis-form-section-header">
+            <h3>Lignes du devis</h3>
+            <p>Ajoutez les produits et services inclus dans ce devis.</p>
+          </header>
+
+          <div class="devis-lines-table-wrapper">
+            <table class="devis-lines-table">
+              <thead>
+                <tr>
+                  <th>Produit / service</th>
+                  <th>Qté</th>
+                  <th>Prix HT</th>
+                  <th>TVA</th>
+                  <th>Total TTC</th>
+                  <th>
+                    <span class="visually-hidden">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody formArrayName="lignes">
+                @for (line of lignes.controls; track $index; let index = $index) {
+                  <tr [formGroupName]="index">
+                    <td class="devis-line-product-cell" data-label="Produit / service">
+                      <select
+                        formControlName="produitId"
+                        aria-label="Produit ou service"
+                        (change)="onProductChange(index)"
+                        [attr.aria-invalid]="getLineError(index, 'produitId') !== null"
+                      >
+                        <option [ngValue]="null">Sélectionner un produit</option>
+
+                        @for (product of produits(); track product.id) {
+                          <option [ngValue]="product.id">
+                            {{ getProductLabel(product) }}
+                          </option>
+                        }
+                      </select>
+
+                      @if (getLineError(index, 'produitId'); as error) {
+                        <p class="devis-form-field-error">
+                          {{ error }}
+                        </p>
+                      }
+                    </td>
+
+                    <td data-label="Qté">
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        formControlName="quantite"
+                        aria-label="Quantité"
+                      />
+                    </td>
+
+                    <td data-label="Prix HT">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        formControlName="prixUnitaireHT"
+                        aria-label="Prix unitaire HT"
+                      />
+                    </td>
+
+                    <td data-label="TVA">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        formControlName="tva"
+                        aria-label="Taux de TVA"
+                      />
+                    </td>
+
+                    <td class="devis-line-total-cell" data-label="Total TTC">
+                      {{ formatCurrency(getLineTotal(index, 'ttc')) }}
+                    </td>
+
+                    <td data-label="">
+                      <button
+                        type="button"
+                        class="devis-line-remove-button"
+                        aria-label="Supprimer cette ligne"
+                        title="Supprimer cette ligne"
+                        (click)="removeLigne(index)"
+                      >
+                        <img src="/icons/trash-2.svg" alt="" />
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <button type="button" class="devis-add-line-button" (click)="addLigne()">
+            <span aria-hidden="true">+</span>
+            <span>Ajouter une ligne</span>
+          </button>
+        </section>
+
+        <section class="devis-form-section devis-summary-section">
+          <header class="devis-form-section-header">
+            <h3>Résumé</h3>
+            <p>Récapitulatif des montants calculés automatiquement.</p>
+          </header>
+
+          <dl class="devis-summary-list">
+            <div>
+              <dt>Total HT</dt>
+              <dd>{{ formatCurrency(getTotal('ht')) }}</dd>
+            </div>
+
+            <div>
+              <dt>TVA</dt>
+              <dd>{{ formatCurrency(getTotal('tva')) }}</dd>
+            </div>
+
+            <div class="devis-summary-total">
+              <dt>Total TTC</dt>
+              <dd>{{ formatCurrency(getTotal('ttc')) }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="devis-form-section">
+          <header class="devis-form-section-header">
+            <h3>Notes / Conditions particulières</h3>
+            <p>Ce texte apparaîtra sur le devis envoyé au client.</p>
+          </header>
+
+          <textarea
+            id="devis-commentaire"
+            formControlName="commentaire"
+            rows="4"
+            maxlength="5000"
+            placeholder="Ex. : Devis valable 30 jours à compter de la date d’émission..."
+          ></textarea>
+
+          @if (getFieldError('commentaire'); as error) {
+            <p class="devis-form-field-error">
+              {{ error }}
+            </p>
+          }
+        </section>
+      </form>
+    }
+  </div>
+</section>

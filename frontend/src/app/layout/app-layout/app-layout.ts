@@ -91,12 +91,15 @@ export class AppLayout implements OnInit {
     return 'Utilisateur';
   });
 
+  private readonly currentRoute = signal(this.router.url.split('?')[0].split('#')[0]);
+
   ngOnInit(): void {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         this.currentRoute.set(event.urlAfterRedirects.split('?')[0].split('#')[0]);
       }
     });
+
     this.authService.loadCurrentUser().subscribe({
       error: () => {
         this.authService.logout();
@@ -104,6 +107,44 @@ export class AppLayout implements OnInit {
       },
     });
   }
+
+  protected readonly pageTitle = computed(() => {
+    const route = this.currentRoute();
+
+    if (route === '/clients/nouveau') {
+      return 'Ajouter un client';
+    }
+
+    if (route.startsWith('/clients/') && route.endsWith('/modifier')) {
+      return 'Modifier un client';
+    }
+
+    if (/^\/clients\/\d+$/.test(route)) {
+      return 'Fiche client';
+    }
+
+    if (route === '/devis/nouveau') {
+      return 'Ajouter un devis';
+    }
+
+    if (route.startsWith('/devis/') && route.endsWith('/modifier')) {
+      return 'Modifier un devis';
+    }
+
+    if (/^\/devis\/\d+$/.test(route)) {
+      return 'Détail du devis';
+    }
+
+    const titles: Record<string, string> = {
+      '/dashboard': 'Tableau de bord',
+      '/clients': 'Clients',
+      '/devis': 'Devis',
+    };
+
+    return titles[route] ?? 'FACTURA';
+  });
+
+  protected readonly isDashboardPage = computed(() => this.currentRoute() === '/dashboard');
 
   protected toggleMobileNavigation(): void {
     this.mobileNavigationOpen.update((isOpen) => !isOpen);
@@ -123,33 +164,6 @@ export class AppLayout implements OnInit {
     this.dashboardService.setSelectedPeriod(period.annee, period.mois);
     this.periodMenuOpen.set(false);
   }
-
-  private readonly currentRoute = signal(this.router.url.split('?')[0].split('#')[0]);
-
-  protected readonly pageTitle = computed(() => {
-    const route = this.currentRoute();
-
-    if (route === '/clients/nouveau') {
-      return 'Ajouter un client';
-    }
-
-    if (route.startsWith('/clients/') && route.endsWith('/modifier')) {
-      return 'Modifier un client';
-    }
-
-    if (/^\/clients\/\d+$/.test(route)) {
-      return 'Fiche client';
-    }
-    const titles: Record<string, string> = {
-      '/dashboard': 'Tableau de bord',
-      '/clients': 'Clients',
-      '/devis': 'Devis',
-    };
-
-    return titles[route] ?? 'FACTURA';
-  });
-
-  protected readonly isDashboardPage = computed(() => this.currentRoute() === '/dashboard');
 
   protected isPeriodSelected(period: DashboardPeriodOption): boolean {
     const selected = this.selectedPeriod();

@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 
 import {
@@ -14,12 +15,13 @@ const STATUTS_SUPPRIMABLES: readonly DevisStatus[] = ['Brouillon', 'Refusé', 'E
 
 @Component({
   selector: 'app-devis',
-  imports: [],
+  imports: [RouterLink],
   templateUrl: './devis.html',
   styleUrl: './devis.scss',
 })
 export class Devis {
   private readonly devisService = inject(DevisService);
+  private readonly router = inject(Router);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -45,19 +47,24 @@ export class Devis {
   protected readonly selectedDevisCount = computed(() => this.selectedDevisIds().size);
 
   protected readonly allDevisSelected = computed(() => {
-    const deletable = this.deletableDevis();
+    const deletableDevis = this.deletableDevis();
     const selectedIds = this.selectedDevisIds();
 
-    return deletable.length > 0 && deletable.every((devisItem) => selectedIds.has(devisItem.id));
+    return (
+      deletableDevis.length > 0 &&
+      deletableDevis.every((devisItem) => selectedIds.has(devisItem.id))
+    );
   });
 
   protected readonly someDevisSelected = computed(() => {
-    const deletable = this.deletableDevis();
+    const deletableDevis = this.deletableDevis();
     const selectedIds = this.selectedDevisIds();
 
-    const selectedCount = deletable.filter((devisItem) => selectedIds.has(devisItem.id)).length;
+    const selectedCount = deletableDevis.filter((devisItem) =>
+      selectedIds.has(devisItem.id),
+    ).length;
 
-    return selectedCount > 0 && selectedCount < deletable.length;
+    return selectedCount > 0 && selectedCount < deletableDevis.length;
   });
 
   protected readonly filterOptions: ReadonlyArray<{
@@ -69,10 +76,15 @@ export class Devis {
     { value: 'Envoyé', label: 'Envoyés' },
     { value: 'Accepté', label: 'Acceptés' },
     { value: 'Refusé', label: 'Refusés' },
+    { value: 'Expiré', label: 'Expirés' },
   ];
 
   constructor() {
     this.loadDevis();
+  }
+
+  protected openCreateForm(): void {
+    void this.router.navigate(['/devis/nouveau']);
   }
 
   protected loadDevis(page = 1): void {

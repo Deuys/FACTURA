@@ -26,6 +26,7 @@ export const routes: Routes = [
             (component) => component.Dashboard,
           ),
       },
+
       {
         path: 'clients/nouveau',
         loadComponent: () =>
@@ -52,15 +53,38 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/clients/pages/clients/clients').then((component) => component.Clients),
       },
+
       {
-        path: '',
-        pathMatch: 'full',
-        redirectTo: 'dashboard',
+        path: 'devis/nouveau',
+        loadComponent: () =>
+          import('./features/devis/pages/devis-form/devis-form').then(
+            (component) => component.DevisForm,
+          ),
+      },
+      {
+        path: 'devis/:id/modifier',
+        loadComponent: () =>
+          import('./features/devis/pages/devis-form/devis-form').then(
+            (component) => component.DevisForm,
+          ),
+      },
+      {
+        path: 'devis/:id',
+        loadComponent: () =>
+          import('./features/devis/pages/devis-detail/devis-detail').then(
+            (component) => component.DevisDetail,
+          ),
       },
       {
         path: 'devis',
         loadComponent: () =>
           import('./features/devis/pages/devis/devis').then((component) => component.Devis),
+      },
+
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'dashboard',
       },
     ],
   },

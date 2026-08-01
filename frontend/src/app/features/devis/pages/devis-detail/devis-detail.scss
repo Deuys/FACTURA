@@ -1,0 +1,442 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.devis-detail-page {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: 24px 0 40px;
+}
+
+.devis-detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: var(--color-text-neutral);
+  font-size: 11px;
+}
+
+.devis-detail-breadcrumb a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.devis-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgb(229 231 235 / 80%);
+}
+
+.devis-detail-kicker {
+  margin: 0 0 5px;
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.devis-detail-header h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 22px;
+}
+
+.devis-detail-header p:last-child {
+  max-width: 620px;
+  margin: 6px 0 0;
+  color: var(--color-text-neutral);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.devis-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.devis-detail-button {
+  min-height: 29px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-small);
+  color: var(--color-text-primary);
+  background: #ffffff;
+  box-shadow: var(--shadow-button);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.devis-detail-button:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.devis-detail-button-primary {
+  color: #ffffff;
+  background: var(--color-primary);
+}
+
+.devis-detail-button-primary:hover:not(:disabled) {
+  color: #ffffff;
+  background: var(--color-primary-hover);
+}
+
+.devis-detail-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.devis-detail-button img {
+  width: 13px;
+  height: 13px;
+}
+
+.devis-detail-alert,
+.devis-detail-success {
+  margin-top: 18px;
+  padding: 11px 13px;
+  border-radius: var(--radius-small);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.devis-detail-alert {
+  color: #b42318;
+  background: #fef3f2;
+}
+
+.devis-detail-success {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.devis-detail-card {
+  min-width: 0;
+  margin-top: 18px;
+  padding: 20px 22px 22px;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-surface);
+}
+
+.devis-detail-card-header {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgb(229 231 235 / 80%);
+}
+
+.devis-detail-card-header h3 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 12px;
+}
+
+.devis-information-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.5fr);
+  gap: 30px;
+}
+
+.devis-detail-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--color-text-neutral);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.devis-detail-client {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.devis-detail-avatar {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: var(--color-primary);
+  background: #eaf1ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.devis-detail-client strong,
+.devis-detail-client small {
+  display: block;
+}
+
+.devis-detail-client strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+
+.devis-detail-client small {
+  margin-top: 3px;
+  color: var(--color-text-neutral);
+  font-size: 10px;
+}
+
+.devis-detail-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px 24px;
+  margin: 0;
+}
+
+.devis-detail-fields dt {
+  margin-bottom: 5px;
+  color: var(--color-text-neutral);
+  font-size: 10px;
+}
+
+.devis-detail-fields dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 11px;
+}
+
+.devis-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 23px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.devis-status-draft {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.devis-status-pending {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.devis-status-sent {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.devis-status-accepted {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.devis-status-refused,
+.devis-status-expired {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.devis-status-transformed {
+  color: #6d28d9;
+  background: #ede9fe;
+}
+
+.devis-status-unknown {
+  color: var(--color-text-neutral);
+  background: #f3f4f6;
+}
+
+.devis-detail-table-wrapper {
+  overflow-x: auto;
+}
+
+.devis-detail-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+}
+
+.devis-detail-table th,
+.devis-detail-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.devis-detail-table th {
+  color: var(--color-text-neutral);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.devis-detail-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.devis-detail-table td:first-child {
+  width: 46%;
+}
+
+.devis-detail-table td strong,
+.devis-detail-table td small {
+  display: block;
+}
+
+.devis-detail-table td strong {
+  font-size: 10px;
+}
+
+.devis-detail-table td small {
+  margin-top: 3px;
+  color: var(--color-text-neutral);
+  font-size: 9px;
+}
+
+.devis-detail-total-cell {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.devis-detail-summary {
+  width: min(100%, 520px);
+  margin: 0 0 0 auto;
+}
+
+.devis-detail-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.devis-detail-summary > div:last-child {
+  border-bottom: 0;
+}
+
+.devis-detail-summary dt,
+.devis-detail-summary dd {
+  margin: 0;
+  color: var(--color-text-neutral);
+  font-size: 10px;
+}
+
+.devis-detail-summary dd {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.devis-detail-summary-total dt,
+.devis-detail-summary-total dd {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.devis-detail-commentaire {
+  margin: 0;
+  color: var(--color-text-neutral);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.devis-detail-empty,
+.devis-detail-message,
+.devis-detail-error {
+  padding: 32px;
+  border-radius: var(--radius-medium);
+  color: var(--color-text-neutral);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-surface);
+  font-size: 12px;
+  text-align: center;
+}
+
+.devis-detail-error {
+  color: var(--color-danger);
+}
+
+.devis-detail-error p {
+  margin: 0 0 16px;
+}
+
+.devis-detail-meta {
+  margin: 16px 0 0;
+  color: var(--color-text-neutral);
+  font-size: 10px;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .devis-detail-page {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .devis-detail-header {
+    flex-direction: column;
+  }
+
+  .devis-detail-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 650px) {
+  .devis-detail-page {
+    padding: 18px 14px 28px;
+  }
+
+  .devis-detail-card {
+    padding: 17px 15px 18px;
+  }
+
+  .devis-information-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .devis-detail-fields {
+    gap: 14px 16px;
+  }
+
+  .devis-detail-actions {
+    width: 100%;
+  }
+
+  .devis-detail-button {
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .devis-detail-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .devis-detail-actions .devis-detail-button {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}

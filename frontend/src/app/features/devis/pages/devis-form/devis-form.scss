@@ -1,0 +1,704 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.devis-form-page {
+  min-height: 100%;
+  padding: 26px 32px 40px;
+  background: var(--color-background);
+}
+
+.devis-form-wrapper {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+}
+
+.devis-form-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  color: var(--color-text-neutral);
+  font-size: 11px;
+}
+
+.devis-form-breadcrumb a {
+  color: var(--color-text-neutral);
+  text-decoration: none;
+}
+
+.devis-form-breadcrumb a:hover {
+  color: var(--color-primary);
+}
+
+.devis-form-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.devis-form-header h2 {
+  margin: 0 0 6px;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.devis-form-header p {
+  margin: 0;
+  color: var(--color-text-neutral);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.devis-form-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.devis-form-button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: var(--radius-medium);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.devis-form-cancel-button {
+  color: var(--color-text-primary);
+  background: #ffffff;
+  box-shadow: var(--shadow-button);
+}
+
+.devis-form-cancel-button:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.devis-form-submit-button {
+  color: #ffffff;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-button);
+}
+
+.devis-form-submit-button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.devis-form-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.devis-form-alert {
+  margin-bottom: 18px;
+  padding: 11px 13px;
+  border-radius: var(--radius-small);
+  color: #b42318;
+  background: #fef3f2;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.devis-form-state {
+  margin: 40px 0;
+  color: var(--color-text-neutral);
+  font-size: 12px;
+  text-align: center;
+}
+
+#devis-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.devis-form-section {
+  min-width: 0;
+  padding: 20px 22px 22px;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-surface);
+}
+
+.devis-form-section-header {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.devis-form-section-header h3 {
+  margin: 0 0 4px;
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.devis-form-section-header p {
+  margin: 0;
+  color: var(--color-text-neutral);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.devis-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.devis-form-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.devis-form-field label {
+  color: var(--color-text-primary);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.devis-form-field input,
+.devis-form-field select,
+.devis-form-section textarea {
+  width: 100%;
+  min-height: 32px;
+  padding: 7px 10px;
+  border: 1px solid rgb(229 231 235 / 90%);
+  border-radius: var(--radius-medium);
+  outline: none;
+  color: var(--color-text-primary);
+  background: #ffffff;
+  box-shadow: inset 0 3px 4px -2px rgb(0 0 0 / 10%);
+  font: inherit;
+  font-size: 10px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.devis-form-field input,
+.devis-form-field select {
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.devis-form-field select {
+  cursor: pointer;
+}
+
+.devis-form-section textarea {
+  min-height: 84px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.devis-form-field input[readonly] {
+  color: var(--color-text-neutral);
+  background: #f9fafb;
+}
+
+.devis-form-field input:focus,
+.devis-form-field select:focus,
+.devis-form-section textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow:
+    inset 0 1px 3px rgb(0 0 0 / 10%),
+    0 0 0 3px rgb(37 99 235 / 12%);
+}
+
+.devis-form-field input[aria-invalid='true'],
+.devis-form-field select[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.devis-form-help {
+  color: var(--color-text-neutral);
+  font-size: 9px;
+}
+
+.required-marker {
+  color: var(--color-danger);
+}
+
+.devis-form-field-error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.devis-lines-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+}
+
+.devis-lines-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.devis-lines-table th,
+.devis-lines-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.devis-lines-table th {
+  color: var(--color-text-neutral);
+  background: #fafafa;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.devis-lines-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.devis-lines-table th:nth-child(1),
+.devis-lines-table td:nth-child(1) {
+  width: 42%;
+}
+
+.devis-lines-table th:nth-child(2),
+.devis-lines-table th:nth-child(3),
+.devis-lines-table th:nth-child(4),
+.devis-lines-table th:nth-child(5),
+.devis-lines-table td:nth-child(2),
+.devis-lines-table td:nth-child(3),
+.devis-lines-table td:nth-child(4),
+.devis-lines-table td:nth-child(5) {
+  width: 12%;
+}
+
+.devis-lines-table th:last-child,
+.devis-lines-table td:last-child {
+  width: 44px;
+  text-align: center;
+}
+
+.devis-lines-table input,
+.devis-lines-table select {
+  width: 100%;
+  height: 30px;
+  min-width: 0;
+  padding: 0 7px;
+  border: 1px solid rgb(229 231 235 / 90%);
+  border-radius: var(--radius-small);
+  outline: none;
+  color: var(--color-text-primary);
+  background: #ffffff;
+  box-shadow: inset 0 2px 3px -2px rgb(0 0 0 / 10%);
+  font-size: 10px;
+}
+
+.devis-lines-table input:focus,
+.devis-lines-table select:focus {
+  border-color: var(--color-primary);
+}
+
+.devis-line-product-cell {
+  min-width: 220px;
+}
+
+.devis-line-total-cell {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.devis-line-remove-button {
+  width: 27px;
+  height: 27px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: #ffffff;
+  box-shadow: var(--shadow-button);
+  cursor: pointer;
+}
+
+.devis-line-remove-button:hover {
+  background: #fef2f2;
+}
+
+.devis-line-remove-button img {
+  width: 14px;
+  height: 14px;
+}
+
+.devis-add-line-button {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  color: var(--color-text-primary);
+  background: #ffffff;
+  box-shadow: var(--shadow-button);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.devis-add-line-button:hover {
+  color: var(--color-primary);
+}
+
+.devis-summary-list {
+  margin: 0;
+}
+
+.devis-summary-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.devis-summary-list > div:last-child {
+  border-bottom: 0;
+}
+
+.devis-summary-list dt,
+.devis-summary-list dd {
+  margin: 0;
+  color: var(--color-text-neutral);
+  font-size: 10px;
+}
+
+.devis-summary-list dd {
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.devis-summary-list .devis-summary-total dt,
+.devis-summary-list .devis-summary-total dd {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.devis-form-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgb(255 255 255 / 40%);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: devis-form-spin 0.7s linear infinite;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 600px) {
+  .devis-form-page {
+    padding: 18px 12px 28px;
+  }
+
+  .devis-form-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .devis-form-button {
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  .devis-form-section {
+    padding: 16px 13px 18px;
+  }
+
+  .devis-lines-table-wrapper {
+    overflow: visible;
+    border: 0;
+  }
+
+  .devis-lines-table {
+    display: block;
+    min-width: 0;
+  }
+
+  .devis-lines-table thead {
+    display: none;
+  }
+
+  .devis-lines-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .devis-lines-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: #ffffff;
+    box-shadow: var(--shadow-button);
+  }
+
+  .devis-lines-table td {
+    width: auto !important;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .devis-lines-table td::before {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-text-neutral);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .devis-lines-table td[data-label]::before {
+    content: attr(data-label);
+  }
+
+  .devis-lines-table td:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .devis-lines-table td:last-child {
+    grid-column: 2;
+    text-align: right;
+    align-self: end;
+  }
+
+  .devis-lines-table td:last-child::before {
+    display: none;
+  }
+
+  .devis-line-product-cell {
+    min-width: 0;
+  }
+
+  .devis-lines-table input,
+  .devis-lines-table select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .devis-line-total-cell {
+    align-self: end;
+    white-space: nowrap;
+  }
+
+  .devis-line-remove-button {
+    margin-left: auto;
+  }
+
+  .devis-add-line-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@keyframes devis-form-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 800px) {
+  .devis-form-page {
+    padding: 22px 20px 32px;
+  }
+
+  .devis-form-header {
+    flex-direction: column;
+  }
+
+  .devis-form-header-actions {
+    width: 100%;
+  }
+
+  .devis-form-button {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .devis-form-page {
+    padding: 18px 14px 28px;
+    overflow-x: hidden;
+  }
+
+  .devis-form-breadcrumb {
+    margin-bottom: 18px;
+  }
+
+  .devis-form-header {
+    margin-bottom: 18px;
+  }
+
+  .devis-form-header h2 {
+    font-size: 17px;
+  }
+
+  .devis-form-section {
+    padding: 17px 15px 18px;
+  }
+
+  .devis-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .devis-lines-table-wrapper {
+    overflow: visible;
+    border: 0;
+  }
+
+  .devis-lines-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .devis-lines-table thead {
+    display: none;
+  }
+
+  .devis-lines-table tbody {
+    display: grid;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .devis-lines-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: #fff;
+    box-shadow: var(--shadow-button);
+  }
+
+  .devis-lines-table td {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    text-align: left;
+  }
+
+  .devis-lines-table td::before {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-text-neutral);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .devis-lines-table td:nth-child(1) {
+    grid-column: 1 / -1;
+  }
+
+  .devis-lines-table td:nth-child(1)::before {
+    content: 'Produit / service';
+  }
+
+  .devis-lines-table td:nth-child(2)::before {
+    content: 'Qté';
+  }
+
+  .devis-lines-table td:nth-child(3)::before {
+    content: 'Prix HT';
+  }
+
+  .devis-lines-table td:nth-child(4)::before {
+    content: 'TVA';
+  }
+
+  .devis-lines-table td:nth-child(5)::before {
+    content: 'Total TTC';
+  }
+
+  .devis-lines-table td:last-child {
+    grid-column: 2;
+    align-self: end;
+    text-align: right;
+  }
+
+  .devis-lines-table td:last-child::before {
+    display: none;
+  }
+
+  .devis-line-product-cell {
+    min-width: 0 !important;
+  }
+
+  .devis-lines-table input,
+  .devis-lines-table select {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .devis-line-remove-button {
+    margin-left: auto;
+  }
+
+  .devis-add-line-button {
+    width: 100%;
+    justify-content: center;
+  }
+}

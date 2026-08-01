@@ -47,7 +47,7 @@
         </button>
       }
 
-      <button type="button" class="button-primary devis-new-button">
+      <button type="button" class="button-primary devis-new-button" (click)="openCreateForm()">
         <span aria-hidden="true">+</span>
         <span>Nouveau devis</span>
       </button>
@@ -154,6 +154,7 @@
                       class="devis-action-button"
                       aria-label="Voir le devis"
                       title="Voir le devis"
+                      [routerLink]="['/devis', devisItem.id]"
                     >
                       <img src="/icons/eye.svg" alt="" />
                     </button>
@@ -163,6 +164,7 @@
                       class="devis-action-button"
                       aria-label="Modifier le devis"
                       title="Modifier le devis"
+                      [routerLink]="['/devis', devisItem.id, 'modifier']"
                     >
                       <img src="/icons/pencil.svg" alt="" />
                     </button>
@@ -270,6 +272,7 @@
                 class="devis-action-button"
                 aria-label="Voir le devis"
                 title="Voir le devis"
+                [routerLink]="['/devis', devisItem.id]"
               >
                 <img src="/icons/eye.svg" alt="" />
               </button>
@@ -279,6 +282,7 @@
                 class="devis-action-button"
                 aria-label="Modifier le devis"
                 title="Modifier le devis"
+                [routerLink]="['/devis', devisItem.id, 'modifier']"
               >
                 <img src="/icons/pencil.svg" alt="" />
               </button>

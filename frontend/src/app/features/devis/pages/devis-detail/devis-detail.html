@@ -1,0 +1,229 @@
+<section class="devis-detail-page" aria-labelledby="devis-detail-title">
+  @if (isLoading()) {
+    <p class="devis-detail-message">Chargement du devis...</p>
+  } @else if (errorMessage(); as error) {
+    <div class="devis-detail-error" role="alert">
+      <p>{{ error }}</p>
+
+      <button type="button" class="devis-detail-button" (click)="goBack()">Retour aux devis</button>
+    </div>
+  } @else if (devis(); as currentDevis) {
+    <div class="devis-detail-breadcrumb">
+      <a routerLink="/devis">Devis</a>
+      <span aria-hidden="true">›</span>
+      <span>{{ currentDevis.numero }}</span>
+    </div>
+
+    <header class="devis-detail-header">
+      <div>
+        <p class="devis-detail-kicker">Devis {{ currentDevis.numero }}</p>
+
+        <h2 id="devis-detail-title">Devis {{ currentDevis.numero }}</h2>
+
+        <p>Consultez les informations du devis avant son envoi ou sa transformation en facture.</p>
+      </div>
+
+      <div class="devis-detail-actions">
+        <button type="button" class="devis-detail-button" (click)="edit()">
+          <img src="/icons/pencil.svg" alt="" />
+          <span>Modifier</span>
+        </button>
+
+        <button
+          type="button"
+          class="devis-detail-button"
+          [disabled]="isPdfLoading()"
+          (click)="downloadPdf()"
+        >
+          <img src="/icons/download.svg" alt="" />
+          <span>Télécharger PDF</span>
+        </button>
+
+        <button
+          type="button"
+          class="devis-detail-button"
+          [disabled]="isPdfLoading()"
+          (click)="printPdf()"
+        >
+          <img src="/icons/printer.svg" alt="" />
+          <span>Imprimer</span>
+        </button>
+
+        @if (canSend()) {
+          <button
+            type="button"
+            class="devis-detail-button"
+            [disabled]="isActionLoading()"
+            (click)="sendDevis()"
+          >
+            <img src="/icons/send.svg" alt="" />
+            <span>Envoyer</span>
+          </button>
+        }
+
+        @if (canTransform()) {
+          <button
+            type="button"
+            class="devis-detail-button devis-detail-button-primary"
+            [disabled]="isActionLoading()"
+            (click)="transformDevis()"
+          >
+            <img src="/icons/receipt.svg" alt="" />
+            <span>Transformer en facture</span>
+          </button>
+        }
+      </div>
+    </header>
+
+    @if (errorMessage(); as error) {
+      <div class="devis-detail-alert" role="alert">
+        {{ error }}
+      </div>
+    }
+
+    @if (actionMessage(); as message) {
+      <div class="devis-detail-success" role="status">
+        {{ message }}
+      </div>
+    }
+
+    <section class="devis-detail-card devis-information-card">
+      <header class="devis-detail-card-header">
+        <h3>Informations du devis</h3>
+      </header>
+
+      <div class="devis-information-grid">
+        <div class="devis-client-summary">
+          <span class="devis-detail-label">Client</span>
+
+          <div class="devis-detail-client">
+            <span class="devis-detail-avatar">
+              {{ getClientInitials(currentDevis.client) }}
+            </span>
+
+            <div>
+              <strong>{{ clientName() }}</strong>
+              <small>
+                {{ currentDevis.client.entreprise || 'Client particulier' }}
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <dl class="devis-detail-fields">
+          <div>
+            <dt>Référence</dt>
+            <dd>{{ currentDevis.numero }}</dd>
+          </div>
+
+          <div>
+            <dt>Statut</dt>
+            <dd>
+              <span [class]="'devis-status-badge ' + getStatusClass(currentDevis.statut)">
+                {{ currentDevis.statut }}
+              </span>
+            </dd>
+          </div>
+
+          <div>
+            <dt>Date du devis</dt>
+            <dd>{{ formatDate(currentDevis.dateEmission) }}</dd>
+          </div>
+
+          <div>
+            <dt>Validité</dt>
+            <dd>{{ formatDate(currentDevis.dateValidite) }}</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="devis-detail-card">
+      <header class="devis-detail-card-header">
+        <h3>Produits et services</h3>
+      </header>
+
+      @if (lignes().length === 0) {
+        <p class="devis-detail-empty">Aucune ligne dans ce devis.</p>
+      } @else {
+        <div class="devis-detail-table-wrapper">
+          <table class="devis-detail-table">
+            <thead>
+              <tr>
+                <th>Produit / service</th>
+                <th>Quantité</th>
+                <th>Prix HT</th>
+                <th>TVA</th>
+                <th>Total TTC</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (line of lignes(); track line.id) {
+                <tr>
+                  <td>
+                    <strong>{{ line.designation }}</strong>
+
+                    @if (line.description) {
+                      <small>{{ line.description }}</small>
+                    }
+                  </td>
+
+                  <td>
+                    {{ line.quantite }}
+                    {{ line.unite ? ' ' + line.unite : '' }}
+                  </td>
+
+                  <td>{{ formatCurrency(line.prixUnitaireHT) }}</td>
+                  <td>{{ line.tva }} %</td>
+
+                  <td class="devis-detail-total-cell">
+                    {{ formatCurrency(line.totalTTC) }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <section class="devis-detail-card devis-detail-summary-card">
+      <header class="devis-detail-card-header">
+        <h3>Résumé</h3>
+      </header>
+
+      <dl class="devis-detail-summary">
+        <div>
+          <dt>Total HT</dt>
+          <dd>{{ formatCurrency(currentDevis.totalHT) }}</dd>
+        </div>
+
+        <div>
+          <dt>TVA</dt>
+          <dd>{{ formatCurrency(currentDevis.totalTVA) }}</dd>
+        </div>
+
+        <div class="devis-detail-summary-total">
+          <dt>Total TTC</dt>
+          <dd>{{ formatCurrency(currentDevis.totalTTC) }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="devis-detail-card">
+      <header class="devis-detail-card-header">
+        <h3>Notes / Conditions particulières</h3>
+      </header>
+
+      <p class="devis-detail-commentaire">
+        {{ currentDevis.commentaire || 'Aucune note ou condition particulière.' }}
+      </p>
+    </section>
+
+    <p class="devis-detail-meta">
+      Dernière modification :
+      {{ formatDateTime(currentDevis.updatedAt) }}
+    </p>
+  }
+</section>
